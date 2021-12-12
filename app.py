@@ -1,28 +1,28 @@
-from flask import Flask, render_template
+from flask import Flask, render_template, request, redirect
 from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy import ForeignKey
 from datetime import datetime
 
-from werkzeug.utils import secure_filename
+from werkzeug.utils import redirect, secure_filename
 
 app = Flask(__name__)
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///cheer.db'
 db = SQLAlchemy(app)
 
 class Admin(db.Model):#add password
-    id = db.Column(db.Integer, primary_key=True)
+    admin_id = db.Column(db.Integer, primary_key=True)
     forename = db.Column(db.String(50), nullable = False)
     surname = db.Column(db.String(50), nullable = False)
     email_address = db.Column(db.String(70), nullable = False)
 
 class Coach(db.Model): #add password
-    id= db.Column(db.Integer, primary_key= True)
+    coach_id= db.Column(db.Integer, primary_key= True)
     forename= db.Column(db.String(50),nullable = False)
     surname= db.Column(db.String(50),nullable = False)
     email= db.Column(db.String(70), nullable = False)
 
 class Athlete(db.Model):#add password
-    id = db.Column(db.Integer, primary_key = True)
+    athlete_id = db.Column(db.Integer, primary_key = True)
     forename = db.Column(db.String(50),nullable = False)
     surname = db.Column(db.String(50), nullable = False)
     dob = db.Column(db.Date, nullable = False)
@@ -31,16 +31,16 @@ class Athlete(db.Model):#add password
     email = db.Column(db.String(70), nullable = False)
 
 class Fees(db.Model):
-    id = db.Column(db.Integer, primary_key= True)
-    admin_id = db.Column(db.Integer, db.ForeignKey('admin.id'))
-    athlete_id = db.Column(db.Integer, db.ForeignKey('athlete.id'))
+    fees_id = db.Column(db.Integer, primary_key= True)
+    admin_id = db.Column(db.Integer)
+    athlete_id = db.Column(db.Integer)
     amount = db.Column(db.Float, nullable = False)
     paid_date = db.Column(db.DateTime, nullable = False, default= 'N/A')
 
-class Team(db.Model):
-    id = db.Column(db.Integer, primary_key= True)
-    coach_id = db.Column(db.Integer, db.ForeignKey('coach.id'))
-    athlete_id = db.Column(db.Integer, db.ForeignKey('athlete.id'))
+class Teams(db.Model):
+    team_id = db.Column(db.Integer, primary_key= True)
+    coach_id = db.Column(db.Integer)
+    athlete_id = db.Column(db.Integer)
     team_name= db.Column(db.String(20), nullable= False)
     max_age = db.Column(db.Integer, nullable=True)
 
@@ -48,29 +48,30 @@ class Team(db.Model):
         return 'Team' +str(self.team_id)
 
 class Team_Sheet(db.Model):#add default time
-    id= db.Column(db.Integer, primary_key=True)
-    team_id= db.Column(db.Integer, db.ForeignKey('team.id'))
-    athlete_id= db.Column(db.Integer, db.ForeignKey('athlete.id'))
+    team_sheet_id= db.Column(db.Integer, primary_key=True)
+    team_id= db.Column(db.Integer)
+    athlete_id= db.Column(db.Integer)
     role= db.Column(db.String(10), default = 'Tumbler')
     
+    
 class Training(db.Model):
-    id= db.Column(db.Integer, primary_key=True)
-    team_id= db.Column(db.Integer, db.ForeignKey('team.id'))
-    coach_id= db.Column(db.Integer, db.ForeignKey('coach.id'))
-    athlete_id= db.Column(db.Integer, db.ForeignKey('athlete.id'))
+    training_id= db.Column(db.Integer, primary_key=True)
+    team_id= db.Column(db.Integer)
+    coach_id= db.Column(db.Integer)
+    athlete_id= db.Column(db.Integer)
     start_date_time= db.Column(db.DateTime, nullable = False)
     attendance= db.Column(db.Boolean, nullable = False)
 
 class Contacts(db.Model):
-    id= db.Column(db.Integer, primary_key=True)
-    athlete_id= db.Column(db.Integer, db.ForeignKey('athlete.id'))
+    contacts_id= db.Column(db.Integer, primary_key=True)
+    athlete_id= db.Column(db.Integer)
     forename= db.Column(db.String(50), nullable = False)
     surname= db.Column(db.String(50), nullable = False)
     number= db.Column(db.String(15), nullable = False)
 
 class Events(db.Model):
-    id= db.Column(db.Integer, primary_key=True)
-    team_id= db.Column(db.Integer, db.ForeignKey('team.id'))
+    events_id= db.Column(db.Integer, primary_key=True)
+    team_id= db.Column(db.Integer)
     event_name= db.Column(db.Text, nullable =False)
     event_start_date= db.Column(db.Date, nullable = False)
 
@@ -93,9 +94,13 @@ all_posts =[
 def index():
     return render_template('index.html')
 
-@app.route('/posts')
-def posts():
-    return render_template('posts.html', posts=all_posts)
+# @app.route('/posts')
+# def posts():
+#     return render_template('posts.html', posts=all_posts)
+
+@app.route('/login')
+def login():
+    return render_template('login.html')
 
 @app.route('/events')
 def events():
@@ -109,9 +114,21 @@ def admin():
 def manage_fees():
     return 'This is where the admin views everyone\'s fees'
 
-@app.route('/admin/teams')
+@app.route('/admin/teams', methods=['GET','CREATE'])
 def manage_teams():
-    return 'This is where the admin views all teams'
+    if request.method == 'CREATE':
+        team_name= request.form['team_name']
+        team_id= request.form['team_id']
+        coach_id= request.form['coach_id']
+        athlete_id= request.form['athlete_id']
+        max_age= request.form['max_age']
+        new_team = Teams(team_id=team_id, coach_id=coach_id, athlete_id=athlete_id, team_name=team_name, max_age=max_age)
+        db.session.add(new_team)
+        db.session.commit()
+        return redirect('/admin/teams')
+    else:
+       all_teams = Teams.query.all()
+       return render_template('teams.html')
 
 @app.route('/admin/training')
 def manage_training():
