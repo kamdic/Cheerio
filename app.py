@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, redirect
+from flask import Flask, render_template, request, redirect, flash
 from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy import ForeignKey
 from datetime import datetime
@@ -7,29 +7,23 @@ from werkzeug.utils import redirect, secure_filename
 
 app = Flask(__name__)
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///cheer.db'
+app.config['SECRET_KEY'] = '70fdcfe8c41540718a930927'
 db = SQLAlchemy(app)
 
-class Admin(db.Model):#add password
-    admin_id = db.Column(db.Integer, primary_key=True)
-    forename = db.Column(db.String(50), nullable = False)
-    surname = db.Column(db.String(50), nullable = False)
-    email_address = db.Column(db.String(70), nullable = False)
-
-class Coach(db.Model): #add password
-    coach_id= db.Column(db.Integer, primary_key= True)
-    forename= db.Column(db.String(50),nullable = False)
-    surname= db.Column(db.String(50),nullable = False)
-    email= db.Column(db.String(70), nullable = False)
-
-class Athlete(db.Model):#add password
-    athlete_id = db.Column(db.Integer, primary_key = True)
+class Users(db.Model):
+    UID = db.Column(db.Integer, primary_key = True)
     forename = db.Column(db.String(50),nullable = False)
     surname = db.Column(db.String(50), nullable = False)
-    dob = db.Column(db.Date, nullable = False)
+    
+    dob = db.Column(db.Date, nullable = True)    
     school_URN = db.Column(db.Integer, nullable = True)
-    start_date = db.Column(db.Date, nullable = False, default=datetime.utcnow)
+    start_date = db.Column(db.Date, nullable = True, default=datetime.utcnow)
+    
     email = db.Column(db.String(70), nullable = False)
-
+    password = db.Column(db.String(255), nullable = False)
+    usertype = db.Column(db.Integer, default = 0)
+    #usertype = {0: athlete, 1: coach, 2: athlete/coach, 3: admin. 4: admin/coach}
+    
 class Fees(db.Model):
     fees_id = db.Column(db.Integer, primary_key= True)
     admin_id = db.Column(db.Integer)
@@ -47,7 +41,7 @@ class Teams(db.Model):
     def __repr__(self):
         return 'Team' +str(self.team_id)
 
-class Team_Sheet(db.Model):#add default time
+class Team_Sheet(db.Model):
     team_sheet_id= db.Column(db.Integer, primary_key=True)
     team_id= db.Column(db.Integer)
     athlete_id= db.Column(db.Integer)
@@ -75,31 +69,30 @@ class Events(db.Model):
     event_name= db.Column(db.Text, nullable =False)
     event_start_date= db.Column(db.Date, nullable = False)
 
-
-
-
-all_posts =[
-    {
-      'title':'Post 1',
-      'content': 'This is the content of post 1. Lalalalalla',
-      'author': 'Kamdi'
-    },
-    {
-      'title':'Post 2',
-      'content': 'This is the content of post 2. Lalalalalla'  
-    }
-]
-
 @app.route('/')
 def index():
-    return render_template('index.html')
+    return render_template('login.html')
 
-# @app.route('/posts')
-# def posts():
-#     return render_template('posts.html', posts=all_posts)
+@app.route('/signup',  methods=['GET', 'POST'])
+def signup():
+    if request.method == 'POST':
+        email = request.form.get('email')
+        firstName = request.form.get('firstName')
+        password1 = request.form.get('password1')
+        password2 = request.form.get('password2')
 
-@app.route('/login')
+        if len(email) <= 3:
+            flash('Your email is too short.', category='error')
+        elif password1 != password2:
+            flash('Passwords don\'t match.', category='error')
+        else:
+            flash('Your account has been created.', category='success')
+    return render_template('signup.html')
+
+@app.route('/login', methods=['GET', 'POST'])
 def login():
+    data = request.form
+    print(data)
     return render_template('login.html')
 
 @app.route('/events')
@@ -114,9 +107,9 @@ def admin():
 def manage_fees():
     return 'This is where the admin views everyone\'s fees'
 
-@app.route('/admin/teams', methods=['GET','CREATE'])
+@app.route('/admin/teams', methods=['GET','POST'])
 def manage_teams():
-    if request.method == 'CREATE':
+    if request.method == 'POST':
         team_name= request.form['team_name']
         team_id= request.form['team_id']
         coach_id= request.form['coach_id']
@@ -128,7 +121,7 @@ def manage_teams():
         return redirect('/admin/teams')
     else:
        all_teams = Teams.query.all()
-       return render_template('teams.html')
+       return render_template('index.html')
 
 @app.route('/admin/training')
 def manage_training():
