@@ -107,7 +107,7 @@ def admin():
 def manage_fees():
     return 'This is where the admin views everyone\'s fees'
 
-@app.route('/admin/teams', methods=['GET','POST'])
+@app.route('/teams', methods=['GET','POST'])
 def manage_teams():
     if request.method == 'POST':
         team_name= request.form['team_name']
@@ -118,7 +118,7 @@ def manage_teams():
         new_team = Teams(team_id=team_id, coach_id=coach_id, athlete_id=athlete_id, team_name=team_name, max_age=max_age)
         db.session.add(new_team)
         db.session.commit()
-        return redirect('/admin/teams')
+        return redirect('/teams')
     else:
        all_teams = Teams.query.all()
        return render_template('index.html')
