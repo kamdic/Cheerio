@@ -1,18 +1,17 @@
-<body>
-    <nav class= "navbar navbar-expand-lg navbar-dark bg-dark">
-        <div class="collapse navbar-collapse" id="navbar">
-          <div class= "navbar-nav">
-            <a class="nav_item nav-link" id="login" href="/login">Login</a>
-            <a class="nav_item nav-link" id="signup" href="/signup">Sign Up</a>
-          </div>
-        </div>
-    </nav>
-  </body>
 {% extends 'base.html' %}
 
 {% block title %}Sign Up{% endblock %}
 
 {% block body %}
+  <nav class= "navbar navbar-expand-lg navbar-dark bg-dark">
+      <div class="collapse navbar-collapse" id="navbar">
+        <div class= "navbar-nav">
+          <a class="nav_item nav-link" id="login" href="/login">Login</a>
+          <a class="nav_item nav-link" id="signup" href="/signup">Sign Up</a>
+        </div>
+      </div>
+  </nav>
+</body> 
 <form method = "POST">
     <h3 align= "center">Sign Up</h3>
     <div class= "form-group">
@@ -34,6 +33,15 @@
         name="firstName"
         placeholder="Enter first name"
         />
+	<div class= "form-group">
+        <label for="surname">Surname</label>
+        <input 
+        type="text" 
+        class="form-control" 
+        id="surname" 
+        name="surname"
+        placeholder="Enter surname"
+        />
     </div>
     <div class= "form-group">
         <label for="password1">Password</label>
@@ -54,7 +62,26 @@
         name="password2"
         placeholder="Confirm password"
         />
+	<div class= "form-group">
+        <label for="dob">Date of Birth</label>
+        <input 
+        type="date" 
+        class="form-control" 
+        id="dob" 
+        name="dob"
+        placeholder="Enter date of birth"
+        />
     </div>
+	<div class= "form-group">
+        <label for="school_URN">School URN (if applicable)</label>
+        <input 
+        type="text" 
+        class="form-control" 
+        id="school_URN" 
+        name="school_URN"
+        placeholder="Enter school URN"
+		/>
+	// Fix usertype
     <br />
     <button type = "submit" class= "btn btn-primary">Submit</button>
 </form>

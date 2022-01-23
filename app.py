@@ -1,29 +1,37 @@
-from flask import Flask, render_template, request, redirect, flash
+from flask import Flask, render_template, request, redirect, flash, url_for
 from flask_sqlalchemy import SQLAlchemy
-from sqlalchemy import ForeignKey
-from datetime import datetime
-
+from datetime import date, datetime
+from flask_login import UserMixin, login_user, login_required, logout_user, current_user,  LoginManager
 from werkzeug.utils import redirect, secure_filename
+from werkzeug.security import generate_password_hash, check_password_hash
 
 app = Flask(__name__)
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///cheer.db'
 app.config['SECRET_KEY'] = '70fdcfe8c41540718a930927'
 db = SQLAlchemy(app)
 
-class Users(db.Model):
-    UID = db.Column(db.Integer, primary_key = True)
-    forename = db.Column(db.String(50),nullable = False)
+login_manager= LoginManager()
+login_manager.init_app(app)
+login_manager.login_view = 'login'
+
+@login_manager.user_loader
+def load_user(user_id):
+    return Users.query.get(user_id)
+
+class Users(db.Model, UserMixin):
+    id = db.Column(db.Integer, primary_key = True)
+    firstName = db.Column(db.String(50),nullable = False)
     surname = db.Column(db.String(50), nullable = False)
     
-    dob = db.Column(db.Date, nullable = True)    
+    #dob = db.Column(db.DateTime, nullable = True)    
     school_URN = db.Column(db.Integer, nullable = True)
-    start_date = db.Column(db.Date, nullable = True, default=datetime.utcnow)
+    #start_date = db.Column(db.DateTime, nullable = True, default=datetime.utcnow)
     
     email = db.Column(db.String(70), nullable = False)
     password = db.Column(db.String(255), nullable = False)
     usertype = db.Column(db.Integer, default = 0)
     #usertype = {0: athlete, 1: coach, 2: athlete/coach, 3: admin. 4: admin/coach}
-    
+
 class Fees(db.Model):
     fees_id = db.Column(db.Integer, primary_key= True)
     admin_id = db.Column(db.Integer)
@@ -59,7 +67,7 @@ class Training(db.Model):
 class Contacts(db.Model):
     contacts_id= db.Column(db.Integer, primary_key=True)
     athlete_id= db.Column(db.Integer)
-    forename= db.Column(db.String(50), nullable = False)
+    firstName= db.Column(db.String(50), nullable = False)
     surname= db.Column(db.String(50), nullable = False)
     number= db.Column(db.String(15), nullable = False)
 
@@ -71,29 +79,62 @@ class Events(db.Model):
 
 @app.route('/')
 def index():
-    return render_template('login.html')
+    return redirect(url_for('login'))
 
 @app.route('/signup',  methods=['GET', 'POST'])
 def signup():
     if request.method == 'POST':
+        data=request.form
         email = request.form.get('email')
         firstName = request.form.get('firstName')
+        surname = request.form.get('surname')
+        dob = request.form.get("dob")
+        school_URN= request.form.get("school_URN")
+        start_date= request.form.get("start_date")
+        usertype= request.form.get("usertype")
         password1 = request.form.get('password1')
         password2 = request.form.get('password2')
 
-        if len(email) <= 3:
+        user = Users.query.filter_by(email=email).first()
+        if user:
+            flash('There is already an account using this email', category='error')
+        elif len(email) <= 3:
             flash('Your email is too short.', category='error')
         elif password1 != password2:
             flash('Passwords don\'t match.', category='error')
         else:
+            new_user = Users(email=email, firstName=firstName, surname=surname, school_URN=school_URN, password=generate_password_hash(password1, method='sha256'))
+            db.session.add(new_user)
+            db.session.commit()
             flash('Your account has been created.', category='success')
+            return redirect(url_for('index'))
+        print(data)
+        
     return render_template('signup.html')
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
-    data = request.form
-    print(data)
+
+    if request.method == "POST":
+        email = request.form.get('email')
+        password = request.form.get('password')
+        user = Users.query.filter_by(email=email).first()
+        if user:
+            if check_password_hash(user.password, password):
+                flash('Login Successful', category='success')
+                login_user(user)
+                return redirect(url_for('manage_teams'))
+            else:
+                flash('Password is incorrect, try again', category='error')
+        else:
+            flash('There is no existing user with this email', category='error')
     return render_template('login.html')
+
+@app.route('/logout')
+@login_required
+def logout():
+    logout_user()
+    return redirect(url_for('login'))
 
 @app.route('/events')
 def events():
@@ -108,6 +149,7 @@ def manage_fees():
     return 'This is where the admin views everyone\'s fees'
 
 @app.route('/teams', methods=['GET','POST'])
+@login_required
 def manage_teams():
     if request.method == 'POST':
         team_name= request.form['team_name']
@@ -118,7 +160,7 @@ def manage_teams():
         new_team = Teams(team_id=team_id, coach_id=coach_id, athlete_id=athlete_id, team_name=team_name, max_age=max_age)
         db.session.add(new_team)
         db.session.commit()
-        return redirect('/teams')
+        return redirect('/admin/teams')
     else:
        all_teams = Teams.query.all()
        return render_template('index.html')
