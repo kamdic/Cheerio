@@ -1,14 +1,17 @@
 from flask import Flask, render_template, request, redirect, flash, url_for
 from flask_sqlalchemy import SQLAlchemy
 from datetime import date, datetime
-from flask_login import UserMixin, login_user, login_required, logout_user, current_user,  LoginManager
-from werkzeug.utils import redirect, secure_filename
+from flask_admin.contrib.sqla import ModelView
+from flask_login import UserMixin, login_user, login_required, logout_user, LoginManager
+from werkzeug.utils import redirect
 from werkzeug.security import generate_password_hash, check_password_hash
+from flask_admin import Admin
 
 app = Flask(__name__)
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///cheer.db'
 app.config['SECRET_KEY'] = '70fdcfe8c41540718a930927'
 db = SQLAlchemy(app)
+
 
 login_manager= LoginManager()
 login_manager.init_app(app)
@@ -77,6 +80,9 @@ class Events(db.Model):
     event_name= db.Column(db.Text, nullable =False)
     event_start_date= db.Column(db.Date, nullable = False)
 
+admin = Admin(app)
+admin.add_view(ModelView(Users,db.session))
+
 @app.route('/')
 def index():
     return redirect(url_for('login'))
@@ -112,6 +118,10 @@ def signup():
         
     return render_template('signup.html')
 
+@app.route('/admin')
+def admin():
+    return render_template('admin.html')
+
 @app.route('/login', methods=['GET', 'POST'])
 def login():
 
@@ -138,15 +148,11 @@ def logout():
 
 @app.route('/events')
 def events():
-    return 'This is the page of events'
+    return render_template('events.html')
 
-@app.route('/admin')
-def admin():
-    return 'This is the admin index page'
-
-@app.route('/admin/fees')
-def manage_fees():
-    return 'This is where the admin views everyone\'s fees'
+@app.route('/fees')
+def view_fees():
+    return render_template('fees.html')
 
 @app.route('/teams', methods=['GET','POST'])
 @login_required
@@ -163,7 +169,7 @@ def manage_teams():
         return redirect('/admin/teams')
     else:
        all_teams = Teams.query.all()
-       return render_template('index.html')
+       return render_template('teams.html')
 
 @app.route('/admin/training')
 def manage_training():
@@ -209,9 +215,6 @@ def view_teamsheet():
 def view_training2():
     return 'Allow athlete to see their upcoming and previous training sessions'
 
-@app.route('/athlete/fees')
-def view_fees():
-    return 'Allow athlete to manage own fees'
 
 if __name__ == "__main__":
     app.run(debug=True)

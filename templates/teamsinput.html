@@ -1,0 +1,32 @@
+{% extends 'base.html' %}
+
+{% block head %}
+<title>Teams</title> 
+{% endblock %}
+
+
+{% block body %}
+<h1>All Teams</h1>
+    <hr>
+    <h2>Create New Team</h2>
+    <form action='/admin/teams' method = 'CREATE'>
+        Team Name: <input type='text' name='title'>
+        <br>
+        Team id: <input type="number" name = "Team Id">
+        <br>
+        Coach id: <input type="number" name= "Coach Id">
+        <br>
+        Athlete id:<input type="number" name= "Athlete Id">
+        <br>
+        Max Age: <input type="number" name="Max Age">
+        <br>
+        <input type='submit' value='Create'>
+    </form>
+    <hr>
+    {% for Team in Teams %} -->
+        <h2>{{ Team.team_name  }}</h2>
+        
+        
+        <p>{{  Team.max_age }}</p> -->
+    {%endfor%}
+{% endblock %}
