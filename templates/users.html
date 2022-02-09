@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+
+  {% block body %}
+    <table class="table table-bordered">
+    {% for user in users %} 
+        <tr>
+          <td>{{ user[0] }}</td>
+          <td>{{ user[1] }}</td>
+          <td>{{ user[2] }}</td>
+          <td>{{ user[3] }}</td>
+          <td>
+            <form action="process.html" method="POST">
+              <select class="form-select" aria-label="Default select example" name="usertype_{{ user[0] }}"> usertype_2
+                <option selected>Open this select menu</option>
+                <option value="0">Athlete</option>
+                <option value="1">Coach</option>
+                <option value="2">Athlete/Coach</option>
+                <option value="3">Admin</option>
+                <option value="4">Admin/Coach</option>
+                <option value="5">Admin/Coach/Athlete</option>
+              </select>
+              <button class="btn btn-primary" type="submit">Button</button>
+          </form>
+          </td>
+      </tr>
+    {% endfor %}
+  </table>
+  
+  {% endblock %}

@@ -2,7 +2,7 @@ from flask import Flask, render_template, request, redirect, flash, url_for
 from flask_sqlalchemy import SQLAlchemy
 from datetime import date, datetime
 from flask_admin.contrib.sqla import ModelView
-from flask_login import UserMixin, login_user, login_required, logout_user, LoginManager
+from flask_login import UserMixin, login_user, login_required, logout_user, LoginManager, current_user
 from werkzeug.utils import redirect
 from werkzeug.security import generate_password_hash, check_password_hash
 from flask_admin import Admin
@@ -21,6 +21,7 @@ login_manager.login_view = 'login'
 def load_user(user_id):
     return Users.query.get(user_id)
 
+
 class Users(db.Model, UserMixin):
     id = db.Column(db.Integer, primary_key = True)
     firstName = db.Column(db.String(50),nullable = False)
@@ -32,7 +33,8 @@ class Users(db.Model, UserMixin):
     
     email = db.Column(db.String(70), nullable = False)
     password = db.Column(db.String(255), nullable = False)
-    usertype = db.Column(db.Integer, default = 0)
+    usertype = db.Column(db.Integer, default = -1)
+    verified = db.Column(db.Integer, default = 0)
     #usertype = {0: athlete, 1: coach, 2: athlete/coach, 3: admin. 4: admin/coach}
 
 class Fees(db.Model):
@@ -80,8 +82,9 @@ class Events(db.Model):
     event_name= db.Column(db.Text, nullable =False)
     event_start_date= db.Column(db.Date, nullable = False)
 
-admin = Admin(app)
-admin.add_view(ModelView(Users,db.session))
+# admin = Admin(app)
+# admin.add_view(ModelView(Users, db.session))
+# admin.add_view(ModelView(Teams, db.session))
 
 @app.route('/')
 def index():
@@ -100,7 +103,6 @@ def signup():
         usertype= request.form.get("usertype")
         password1 = request.form.get('password1')
         password2 = request.form.get('password2')
-
         user = Users.query.filter_by(email=email).first()
         if user:
             flash('There is already an account using this email', category='error')
@@ -112,28 +114,28 @@ def signup():
             new_user = Users(email=email, firstName=firstName, surname=surname, school_URN=school_URN, password=generate_password_hash(password1, method='sha256'))
             db.session.add(new_user)
             db.session.commit()
-            flash('Your account has been created.', category='success')
+            flash('Your account has been created. Wait for the admin user to verify it.', category='success')
             return redirect(url_for('index'))
-        print(data)
         
     return render_template('signup.html')
 
-@app.route('/admin')
-def admin():
-    return render_template('admin.html')
-
 @app.route('/login', methods=['GET', 'POST'])
 def login():
-
     if request.method == "POST":
         email = request.form.get('email')
         password = request.form.get('password')
         user = Users.query.filter_by(email=email).first()
         if user:
             if check_password_hash(user.password, password):
-                flash('Login Successful', category='success')
-                login_user(user)
-                return redirect(url_for('manage_teams'))
+                if user.verified == 1:
+                    login_user(user)
+                    if user.usertype <= 3:
+                        flash('Login Successful', category='success')
+                        return redirect(url_for('teams',user=current_user))
+                    else:
+                        return redirect(url_for('admin'))
+                else:
+                    flash('Your details have yet to be verified by the Admin', category='error')
             else:
                 flash('Password is incorrect, try again', category='error')
         else:
@@ -146,17 +148,33 @@ def logout():
     logout_user()
     return redirect(url_for('login'))
 
+@app.route('/admin')
+@login_required
+def admin():
+    return render_template('admin.html')
+
+@app.route('/users')
+@login_required
+def users():
+    if current_user.usertype < 4:
+        return "You are not authorised to view this page"
+
+    query = db.engine.execute("SELECT id, firstName, surname, email FROM users WHERE verified < 1")  
+    return render_template('users.html', users=query)
+
 @app.route('/events')
+@login_required
 def events():
     return render_template('events.html')
 
 @app.route('/fees')
-def view_fees():
+@login_required
+def fees():
     return render_template('fees.html')
 
 @app.route('/teams', methods=['GET','POST'])
 @login_required
-def manage_teams():
+def teams():
     if request.method == 'POST':
         team_name= request.form['team_name']
         team_id= request.form['team_id']
@@ -166,10 +184,9 @@ def manage_teams():
         new_team = Teams(team_id=team_id, coach_id=coach_id, athlete_id=athlete_id, team_name=team_name, max_age=max_age)
         db.session.add(new_team)
         db.session.commit()
-        return redirect('/admin/teams')
+        return redirect('/teams')
     else:
-       all_teams = Teams.query.all()
-       return render_template('teams.html')
+       return render_template('teams.html', teams=Teams.query.all(), title="Show all Teams")
 
 @app.route('/admin/training')
 def manage_training():
