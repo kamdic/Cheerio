@@ -63,20 +63,26 @@
         </div>  
   
         <div class="container">
-          {% for team in teams %}
-          <ul id='team.team_id'>
-            <li>
-              <span class='field-name'>Team:</span>
-              <span class='field-value'>{{ team.team_name }}</span>
-            </li>
-            <li>
-              <span class='field-name'>Maximum Age:</span>
-              <span class='field-value'>{{ team.max_age }}</span>
-            </li>
-          </ul>
-          {% endfor %}
+          <table class="table">
+            <thead>
+              <tr>
+                <th scope="col">Team Name</th>
+                <th scope="col">Main coach Name</th>
+                <th scope="col">Maximum Age</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for x in range(0, team_num)%}
+              <tr>
+                <th scope="row">{{ team_names[x] }}</th>
+                <td>{{ coach_names[x] }}</td>
+                <td>{{max_ages[x]}}</td>   
+              </tr>                               
+              {% endfor %}              
+            </tbody>
+          </table>
         </div>
       </main>
     </div>
   </div>
-{% endblock %}
+  {% endblock %}
