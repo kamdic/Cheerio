@@ -139,15 +139,15 @@
               </div>
             </li>
             <li>
-              <a href="#" class="nav-link px-3">
+              <a href="{{ url_for('view_teams') }}" class="nav-link px-3">
                 <span class="me-2"><i class="bi bi-graph-up"></i></span>
-                <span>Charts</span>
+                <span>Teams</span>
               </a>
             </li>
             <li>
-              <a href="#" class="nav-link px-3">
+              <a href="{{ url_for('users') }}" class="nav-link px-3">
                 <span class="me-2"><i class="bi bi-table"></i></span>
-                <span>Tables</span>
+                <span>Users</span>
               </a>
             </li>
           </ul>
@@ -175,45 +175,39 @@
         {% endfor %} 
         {% endif %} 
         {% endwith %}
-        <form method = 'POST'>
-            <h3>Create A Team</h3>
-            <div class= "form-group">
-              <label for="coach">Coach Name</label>
-              <select class="form-select" aria-label="Default select example" name="coach", id= "coach">
-                <option selected>Select Coach</option>
-                {% for coach in coaches %}
-                  <option value = "{{coach.id}}">{{coach.firstName + " " + coach.surname}}</option>
-                {% endfor %}
-              </select>
+        <div class="row">
+            <div class="col-md-3 mb-3 text-center">
+              <a href="{{ url_for('users') }}">
+                <div class="card bg-primary text-white h-100">
+                  <div class="card-body py-5">Verify Users</div>
+                </div>
+              </a>
             </div>
-            <div class= "form-group">
-              <label for="team_name">Team Name</label>
-              <input 
-              type="text" 
-              class="form-control" 
-              id="team_name" 
-              name="team_name"
-              placeholder="Enter Team Name"
-              />
-              <div class= "form-group">
-                <label for="max_age">Max Age</label>
-                <input 
-                type="number"
-                class="form-control" 
-                id="max_age" 
-                name="max_age"
-                placeholder="Enter maximum age (if applicable)"
-                />
-                <button class="btn btn-primary" type="submit">Submit</button>
-                  <!-- <select class="form-select" aria-label="Default select example" name="Athlete", id= "Athlete">
-                    <option selected>Select Athlete</option>
-                    {% for athlete in athletes %}
-                      <option value = "{{athlete.id}}">{{athlete.firstName+ " " +athlete.surname}}</option>
-                    {% endfor %}
-                    </select> -->
+            <div class="col-md-3 mb-3 text-center">
+              <a href="{{ url_for('view_fees') }}">
+                <div class="card bg-warning text-dark h-100">
+                  <div class="card-body py-5">Manage Fees</div>
+                </div>
+              </a>
+            </div>
+            <div class="col-md-3 mb-3 text-center">
+              <a href="{{ url_for('view_teams') }}">
+                <div class="card bg-success text-white h-100">
+                  <div class="card-body py-5">Create Teams</div>
+                </div>
+              </a>
+            </div>
+            <div class="col-md-3 mb-3 text-center">
+              <a href="{{ url_for('view_events') }}"></a>
+                <div class="card bg-danger text-white h-100">
+                  <div class="card-body py-5">Manage Events</div>
+                </div>
+              </a>
+            </div>
+          </div>
+        <form method = 'POST' action="{{ url_for('create_teams')}} ">
 
-            </div>
-        </form>
+            </form>
       </div>
     </main>
   </body>
