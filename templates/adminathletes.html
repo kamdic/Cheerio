@@ -27,7 +27,6 @@
         </button>
         <a
           class="navbar-brand me-auto ms-lg-0 ms-3 text-uppercase fw-bold"
-          href="#"
           >AEC ADMIN PAGE- {{ current_user.firstName }}</a
         >
         <button
@@ -44,30 +43,14 @@
         <div class="collapse navbar-collapse" id="topNavBar">
           <form class="d-flex ms-auto my-3 my-lg-0">
             <div class="input-group">
-              <button class="btn btn-primary" type="submit">
-                <i class="bi bi-search"></i>
-              </button>
+              <a href ="{{ url_for('logout') }}" class="btn btn-primary">
+                <i class="bi bi-door-open-fill"></i>
+            </a>
             </div>
           </form>
           <ul class="navbar-nav">
-            <li class="nav-item dropdown">
-              <a
-                class="nav-link dropdown-toggle ms-2"
-                href="#"
-                role="button"
-                data-bs-toggle="dropdown"
-                aria-expanded="false"
-              >
-                <i class="bi bi-person-fill"></i>
+                <i class="bi data-bs-dismiss"></i>
               </a>
-              <ul class="dropdown-menu dropdown-menu-end">
-                <li><a class="dropdown-item" href="#">Action</a></li>
-                <li><a class="dropdown-item" href="#">Another action</a></li>
-                <li>
-                  <a class="dropdown-item" href="#">Something else here</a>
-                </li>
-              </ul>
-            </li>
           </ul>
         </div>
       </div>
@@ -75,85 +58,111 @@
     <!-- top navigation bar -->
     <!-- offcanvas -->
     <div
-      class="offcanvas offcanvas-start sidebar-nav bg-dark"
-      tabindex="-1"
-      id="sidebar"
-    >
-      <div class="offcanvas-body p-0">
-        <nav class="navbar-dark">
-          <ul class="navbar-nav">
-            <li>
-              <div class="text-muted small fw-bold text-uppercase px-3">
-                CORE
-              </div>
-            </li>
-            <li>
-              <a href="#" class="nav-link px-3 active">
-                <span class="me-2"><i class="bi bi-speedometer2"></i></span>
-                <span>Dashboard</span>
-              </a>
-            </li>
-            <li class="my-4"><hr class="dropdown-divider bg-light" /></li>
-            <li>
-              <div class="text-muted small fw-bold text-uppercase px-3 mb-3">
-                Interface
-              </div>
-            </li>
-            <li>
+    class="offcanvas offcanvas-start sidebar-nav bg-dark"
+    tabindex="-1"
+    id="sidebar"
+  >
+    <div class="offcanvas-body p-0">
+      <nav class="navbar-dark">
+        <ul class="navbar-nav">
+          <li>
+            <div class="text-muted small fw-bold text-uppercase px-3">
+              CORE
+            </div>
+          </li>
+          <li>
+            <a href="{{ url_for('admin') }}" class="nav-link px-3 active">
+              <span class="me-2"><i class="bi bi-speedometer2" ></i></span>
+              <span>Dashboard</span>
+            </a>
+          </li>
+          <li class="my-4"><hr class="dropdown-divider bg-light" /></li>
+          <li>
+            <div class="text-muted small fw-bold text-uppercase px-3 mb-3">
+              Interface
+            </div>
+          </li>
+          <li>
+            <a
+              class="nav-link px-3 sidebar-link"
+              href="{{ url_for('users') }}"
+            >
+              <span class="me-2"><i class="bi bi-layout-split"></i></span>
+              <span>Verify Users</span>
+              <span class="ms-auto">
+              </span>
+            </a>
+            <a
+            class="nav-link px-3 sidebar-link"
+            href="{{ url_for('view_fees') }}"
+          >
+            <span class="me-2"><i class="bi bi-layout-split"></i></span>
+            <span>Manage Fees</span>
+            <span class="ms-auto">
+            </span>
+          </a>
+          <a
+          class="nav-link px-3 sidebar-link"
+          href="{{ url_for('view_teams') }}"
+        >
+          <span class="me-2"><i class="bi bi-layout-split"></i></span>
+          <span>Manage Teams</span>
+          <span class="ms-auto">
+          </span>
+        </a>
               <a
-                class="nav-link px-3 sidebar-link"
-                data-bs-toggle="collapse"
-                href="#layouts"
-              >
-                <span class="me-2"><i class="bi bi-layout-split"></i></span>
-                <span>Layouts</span>
-                <span class="ms-auto">
-                  <span class="right-icon">
-                    <i class="bi bi-chevron-down"></i>
-                  </span>
-                </span>
-              </a>
-              <div class="collapse" id="layouts">
-                <ul class="navbar-nav ps-3">
-                  <li>
-                    <a href="#" class="nav-link px-3">
-                      <span class="me-2"
-                        ><i class="bi bi-speedometer2"></i
-                      ></span>
-                      <span>Dashboard</span>
-                    </a>
-                  </li>
-                </ul>
-              </div>
-            </li>
-            <li>
-              <a href="#" class="nav-link px-3">
-                <span class="me-2"><i class="bi bi-book-fill"></i></span>
-                <span>Pages</span>
-              </a>
-            </li>
-            <li class="my-4"><hr class="dropdown-divider bg-light" /></li>
-            <li>
-              <div class="text-muted small fw-bold text-uppercase px-3 mb-3">
-                Addons
-              </div>
-            </li>
-            <li>
-              <a href="{{ url_for('view_teams') }}" class="nav-link px-3">
-                <span class="me-2"><i class="bi bi-graph-up"></i></span>
-                <span>Teams</span>
-              </a>
-            </li>
-            <li>
-              <a href="{{ url_for('users') }}" class="nav-link px-3">
-                <span class="me-2"><i class="bi bi-table"></i></span>
-                <span>Users</span>
-              </a>
-            </li>
-          </ul>
-        </nav>
-      </div>
+              class="nav-link px-3 sidebar-link"
+              href="{{ url_for('view_athletes') }}"
+            >
+              <span class="me-2"><i class="bi bi-layout-split"></i></span>
+              <span>Manage Athletes</span>
+              <span class="ms-auto">
+              </span>
+            </a>
+            <a
+            class="nav-link px-3 sidebar-link"
+            href="{{ url_for('view_events') }}"
+          >
+            <span class="me-2"><i class="bi bi-layout-split"></i></span>
+            <span>Manage Events</span>
+            <span class="ms-auto">
+            </span>
+          </a>
+          <a
+          class="nav-link px-3 sidebar-link"
+          href="{{ url_for('view_training') }}"
+        >
+          <span class="me-2"><i class="bi bi-layout-split"></i></span>
+          <span>Manage Training</span>
+          <span class="ms-auto">
+          </span>
+        </a>
+        <a
+        class="nav-link px-3 sidebar-link"
+        href="{{ url_for('view_teamsheet') }}"
+      >
+        <span class="me-2"><i class="bi bi-layout-split"></i></span>
+        <span>View Teamsheets</span>
+        <span class="ms-auto">
+        </span>
+      </a>        
+            <div class="collapse" id="layouts">
+              <ul class="navbar-nav ps-3">
+                <li>
+                  <a href="{{ url_for('admin') }}" class="nav-link px-3">
+                    <span class="me-2"
+                      ><i class="bi bi-speedometer2"></i
+                    ></span>
+                    <span>Dashboard</span>
+                  </a>
+                </li>
+              </ul>
+            </div>
+          </li>
+        </ul>
+      </nav>
     </div>
+  </div>
     <!-- offcanvas -->
     <main class="mt-5 pt-3">
       <div class="container-fluid">
@@ -175,39 +184,42 @@
         {% endfor %} 
         {% endif %} 
         {% endwith %}
-        <div class="row">
-            <div class="col-md-3 mb-3 text-center">
-              <a href="{{ url_for('users') }}">
-                <div class="card bg-primary text-white h-100">
-                  <div class="card-body py-5">Verify Users</div>
-                </div>
-              </a>
-            </div>
-            <div class="col-md-3 mb-3 text-center">
-              <a href="{{ url_for('view_fees') }}">
-                <div class="card bg-warning text-dark h-100">
-                  <div class="card-body py-5">Manage Fees</div>
-                </div>
-              </a>
-            </div>
-            <div class="col-md-3 mb-3 text-center">
-              <a href="{{ url_for('view_teams') }}">
-                <div class="card bg-success text-white h-100">
-                  <div class="card-body py-5">Create Teams</div>
-                </div>
-              </a>
-            </div>
-            <div class="col-md-3 mb-3 text-center">
-              <a href="{{ url_for('view_events') }}"></a>
-                <div class="card bg-danger text-white h-100">
-                  <div class="card-body py-5">Manage Events</div>
-                </div>
-              </a>
-            </div>
-          </div>
-        <form method = 'POST' action="{{ url_for('create_teams')}} ">
-
-            </form>
+        {% for table in range(team_count) %}
+        <form method = 'POST' action="{{ url_for('create_athletes')}} "></form>
+        <table class="table" width="100%">
+          <thead>
+            <tr>
+              <th scope="col" width="20%">{{team_names[table][0]}}</th>
+              <th scope="col" width= "70%">Athlete</th>
+              <th scope= "col"></th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for athlete in teams[table+1]%}
+            <tr>
+              <th scope= "row"></th>
+              <td>{{athlete}}</td>
+              <td><a type="Submit" class="btn btn-danger btn-sm" href= "{{url_for('delete_athletes')}}">Delete</a></td>
+            </tr>   
+            {% endfor %}                            
+            <tr>
+              <td>
+              </td>
+              <td>
+                <select class="form-select" aria-label="Default select example" name="coach", id= "coach">
+                  <option selected>Select an athlete: </option>
+                  {% for athlete in athletes%}
+                    <option value="{{coach}}">{{coaches[coach][0]}}</option>
+                  {% endfor %}
+                </select>
+              </td>
+              </select>
+              <td><input class="btn btn-success" type="submit" value="Submit"></td>
+              </tr>                                          
+            </tbody>
+        </table>
+      </form>
+      {% endfor %}  
       </div>
     </main>
   </body>

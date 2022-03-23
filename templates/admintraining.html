@@ -167,39 +167,6 @@
     <main class="mt-5 pt-3">
       <div class="container-fluid">
         <!-- where to add to white area -->
-        <table class="table table-bordered">
-          <thead>
-            <tr>
-              <th scope="col">User Id</th>
-              <th scope="col">First Name </th>
-              <th scope="col">Last Name</th>
-              <th scope="col">Email</th>
-              <th scope="col">User Type</th>
-            </tr>
-          </thead>
-          {% for user in users %} 
-              <tr>
-                <td>{{ user.id }}</td>
-                <td>{{ user.firstName }}</td>
-                <td>{{ user.surname}}</td>
-                <td>{{ user.email }}</td>
-                <td>
-                  <form method="POST">
-                    <select class="form-select" aria-label="Default select example" name="usertype_{{ user.id }}", id= "usertype">
-                      <option selected>Select user type</option>
-                      <option value="0">Athlete</option>
-                      <option value="1">Coach</option>
-                      <option value="2">Athlete/Coach</option>
-                      <option value="3">Admin</option>
-                      <option value="4">Admin/Coach</option>
-                      <option value="5">Admin/Coach/Athlete</option>
-                    </select>
-                    <button class="btn btn-primary" type="submit">Submit</button>
-                </form>
-                </td>
-            </tr>
-          {% endfor %}
-        </table>
       </div>
     </main>
   </body>

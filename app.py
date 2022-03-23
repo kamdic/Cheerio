@@ -1,10 +1,11 @@
-from operator import itemgetter
+from array import *
 from flask import Flask, render_template, request, redirect, flash, url_for
 from flask_sqlalchemy import SQLAlchemy
 from datetime import datetime
 from flask_login import UserMixin, login_user, login_required, logout_user, LoginManager, current_user
 from werkzeug.utils import redirect
 from werkzeug.security import generate_password_hash, check_password_hash
+
 
 app = Flask(__name__)
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///cheer.db'
@@ -40,6 +41,7 @@ class Fees(db.Model):
     athlete_id = db.Column(db.Integer)
     amount = db.Column(db.Float, nullable = False)
     paid_date = db.Column(db.DateTime, nullable = False, default= 'N/A')
+    paid = db.Column(db.Integer, default=0)
 
 class Team_Details(db.Model):
     team_id = db.Column(db.Integer, primary_key= True)
@@ -86,6 +88,10 @@ class Events(db.Model):
     event_start_date= db.Column(db.Date, nullable = False)
     size = db.Column(db.Integer, nullable = False)
 
+def age(born):
+    today= datetime.today().strftime('%Y-%m-%d').split("-")
+    born = born.split("-")
+    return int(today[0]) - int(born[0]) - (((int(today[1]), int(today[2]))) < ((int(born[1]), int(born[2]))))
 
 @app.route('/')
 def index():
@@ -199,7 +205,7 @@ def view_teams():
     for team in query:
         team_names[team[0]] = [team[1], team[2], team[3] + " " + team[4]]
     db.session.commit()
-    return render_template('teamsindex.html', team_names = team_names,coaches = coaches)
+    return render_template('adminteams.html', team_names = team_names,coaches = coaches)
 
 @app.route('/deleteteams/<teamid>')
 @login_required
@@ -221,34 +227,76 @@ def create_teams():
         coaches = {}
         for coach in query:
             coaches[coach[0]] = [coach[1]+ " "+ coach[2]]
-        coach_id = request.form.get('coach_id')
+        coach_id = request.form.get('coach')
         team_name = request.form.get('team_name')
         max_age = request.form.get('max_age')
         existing_team = Team_Details.query.filter_by(team_name = team_name).first()
         if existing_team:
             flash('There is already an existing team with this name', category='error')
+        elif coach_id == "Select a coach:":
+            flash('You must select a coach', category='error')
+        elif team_name.rstrip() == "":
+            flash('The team name cannot be empty', category='error')
         else:
             new_team = Team_Details(coach_id= coach_id, team_name= team_name, max_age= max_age)
             db.session.add(new_team)
             db.session.commit()
             flash('Your new team: {} has been created.'.format(team_name), category='success')
         return redirect(url_for('view_teams'))
-    return render_template('teamsindex.html', coaches = coaches)
+    return render_template('adminteams.html', coaches = coaches)
 
 @app.route('/athletes')
 @login_required
 def view_athletes():
-    return render_template('athletes.html')
+    if -1 < current_user.usertype < 4:
+        return render_template('athletes.html')
+    elif current_user.usertype > 4:
+        team_count = db.engine.execute("SELECT COUNT(team_id) FROM team__details")
+        teams = {}
+        count = 1
+        for amount in team_count:
+            team_count = amount[0]
+        for team in range(team_count):
+            query = db.engine.execute("SELECT user.id, user.firstName, user.surname, user.dob FROM user, team__members WHERE user.id = team__members.athlete_id AND team__members.team_id = {}".format(count))
+            athletes = []       
+            for athlete in query:
+                date = athlete[3].rstrip("00:00:00.0000000")
+                print(date)
+                print(age(date))
+                athletes.append(athlete[1] + " " + athlete[2])
+            teams[count] = athletes
+            count +=1
+        team_names = []
+        query = db.engine.execute("SELECT team_name FROM team__details")
+        for team_name in query:
+            team_names.append(team_name)
+        ids = []
+        query = db.engine.execute("SELECT * FROM team__members")
+        for id in query:
+            ids.append(id) 
+        print(ids)
+        return render_template('adminathletes.html',team_count= team_count,teams=teams, team_names=team_names, ids = ids)
+    else:
+        return "You are not authorised to view this page"
+
+@app.route('/deleteathletes')
+@login_required
+def delete_athletes():
+    return render_template('adminathletes.html')
 
 @app.route('/createathletes')
 @login_required
 def create_athletes():
+    #query = db.engine.execute('SELECT max_age FROM team__details WHERE team_i')
     return render_template('adminathletes.html')
 
 @app.route('/events')
 @login_required
 def view_events():
-    return render_template('events.html')
+    if -1 < current_user.usertype < 4:
+        return render_template('events.html')
+    elif current_user.usertype >4:
+        return render_template('adminevents.html')
 
 @app.route('/createevents')
 @login_required
@@ -263,7 +311,13 @@ def delete_events():
 @app.route('/fees')
 @login_required
 def view_fees():
-    return render_template('fees.html')
+    if -1< current_user.usertype < 4:
+        return render_template('fees.html')
+    elif current_user.usertype > 3:
+        query = db.engine.execute('SELECT fees.fees_id, user.firstName, user.surname, fees.amount, fees.paid_date FROM fees, user WHERE user.id = fees.athlete_id ORDER BY fees.paid_date DESC')
+        return render_template('adminfees.html', fees=query)
+    else:
+        return 'You are not verified'
 
 @app.route('/createfees')
 @login_required
@@ -278,12 +332,22 @@ def delete_fees():
 @app.route('/training')
 @login_required
 def view_training():
-    return 'This is where the admin manages all training sessions'
+    if -1 < current_user.usertype < 4:
+        return render_template('training.html')
+    elif current_user.usertype >3:
+        return render_template('admintraining.html')
+    else:
+        return 'You are not verified to view this page'
  
 @app.route('/createtraining')
 @login_required
 def create_training():
-    return 'This is where the admin manages all training sessions'
+    if -1 < current_user.usertype < 4:
+        return render_template('training.html')
+    elif current_user.usertype >3:
+        return render_template('admintraining.html')
+    else:
+        return 'You are not verified to view this page'
 
 @app.route('/deletetraining')
 @login_required
@@ -293,7 +357,9 @@ def delete_training():
 @app.route('/contacts')
 @login_required
 def view_contacts():
-    return 'This is where the admin views all contact information'
+    if current_user.usetype < 4:
+        return "You're not authorised to view this page"
+    return 'This is where the admin manages all training sessions'
 
 @app.route('/createcontacts')
 @login_required
@@ -308,6 +374,12 @@ def delete_contacts():
 @app.route('/teamsheet')
 @login_required
 def view_teamsheet():
+    if current_user.usertype == 0:
+        return render_template('teamsheet.html')
+    elif 0 < current_user.usertype < 4:
+        return render_template('coachteamsheet.html')
+    elif current_user.usertype >3:
+        return render_template('adminteamsheet.html')
     return 'Allow everyone to view teamsheet'
 
 @app.route('/createteamsheet')

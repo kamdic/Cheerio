@@ -7,12 +7,74 @@
     <link rel="stylesheet" href="static\css\admin\bootstrap.min.css" />
     <link
       rel="stylesheet"
-      href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.4.1/font/bootstrap-icons.css"
-    />
+      href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.4.1/font/bootstrap-icons.css"/>
     <link rel="stylesheet" href="static\css\admin\bootstrap.min.css" />
     <link rel="stylesheet" href="static\css\admin\style.css" />
-    <title>Admin Dashboard</title>
+    <link rel="stylehseet" href="https://cdnjs.cloudflare.com/ajax/libs/fullcalendar/3.9.0/fullcalendar.min.css"/>
+    <link rel="stylehseet" href="https://fonts.googleapis.com/icon?family=Material+Icons"/>
+    <link rel="stylehseet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css"/>
+    <script src="https://cdn.jsdelivr.net/npm/fullcalendar@5.10.1/main.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/fullcalendar@5.10.1/locales-all.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.22.2/moment.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jqueryui/1.12.1/jquery-ui.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/fullcalendar/3.9.0/fullcalendar.min.js"></script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/fullcalendar@5.10.1/main.min.css">
+    <link rel='stylesheet' type='text/css' href='https://cdnjs.cloudflare.com/ajax/libs/fullcalendar/2.7.1/fullcalendar.min.css'>
+        <script>
+
+$(document).ready(function() {
+  $("#calendar").fullCalendar({
+    header: {
+      left: "prev,next today",
+      center: "title",
+      right: "month,agendaWeek,agendaDay",
+    },
+    defaultView: "month",
+    navLinks: true, // can click day/week names to navigate views
+    selectable: true,
+    selectHelper: false,
+    editable: true,
+    eventLimit: true, // allow "more" link when too many events
+
+    select: function(start, end) {
+      var title = prompt("Event Content:");
+      var eventData;
+      if (title) {
+        eventData = {
+          title: title,
+          start: start,
+          end: end
+        };
+        $("#calendar").fullCalendar("renderEvent", eventData, true); // stick? = true
+      }
+      $("#calendar").fullCalendar("unselect");
+    },
+
+    eventRender: function(event, element) {
+      element
+        .find(".fc-content")
+        .prepend("<span class='closeon material-icons'>&#xe5cd;</span>");
+      element.find(".closeon").on("click", function() {
+        $("#calendar").fullCalendar("removeEvents", event._id);
+      });
+    },
+
+    eventClick: function(calEvent) {
+      var title = prompt("Edit Event Content:", calEvent.title);
+      calEvent.title = title;
+      $("#calendar").fullCalendar("updateEvent", calEvent);
+    },
+    
+    
+  });
+
+  calendar.render();
+});
+    </script>
   </head>
+    <title>Admin Dashboard</title>
+    <body>
     <!-- top navigation bar -->
     <nav class="navbar navbar-expand-lg navbar-dark bg-dark fixed-top">
       <div class="container-fluid">
@@ -163,44 +225,31 @@
       </nav>
     </div>
   </div>
+  </div>
     <!-- offcanvas -->
     <main class="mt-5 pt-3">
       <div class="container-fluid">
         <!-- where to add to white area -->
-        <table class="table table-bordered">
-          <thead>
-            <tr>
-              <th scope="col">User Id</th>
-              <th scope="col">First Name </th>
-              <th scope="col">Last Name</th>
-              <th scope="col">Email</th>
-              <th scope="col">User Type</th>
-            </tr>
-          </thead>
-          {% for user in users %} 
-              <tr>
-                <td>{{ user.id }}</td>
-                <td>{{ user.firstName }}</td>
-                <td>{{ user.surname}}</td>
-                <td>{{ user.email }}</td>
-                <td>
-                  <form method="POST">
-                    <select class="form-select" aria-label="Default select example" name="usertype_{{ user.id }}", id= "usertype">
-                      <option selected>Select user type</option>
-                      <option value="0">Athlete</option>
-                      <option value="1">Coach</option>
-                      <option value="2">Athlete/Coach</option>
-                      <option value="3">Admin</option>
-                      <option value="4">Admin/Coach</option>
-                      <option value="5">Admin/Coach/Athlete</option>
-                    </select>
-                    <button class="btn btn-primary" type="submit">Submit</button>
-                </form>
-                </td>
-            </tr>
-          {% endfor %}
-        </table>
-      </div>
+        {% with messages = get_flashed_messages(with_categories=true) %} 
+        {% if messages %} 
+        {% for category, message in messages %} 
+        {% if category =='error' %}
+        <div class="alert alert-warning alert-dismissible fade show" role="alert">
+          <strong>{{message}}</strong> 
+          <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+        {% else %}
+        <div class="alert alert-success alter-dismissable fade show" role="alert">
+        <strong>{{message}}</strong>
+          <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+        {% endif %} 
+        {% endfor %} 
+        {% endif %} 
+        {% endwith %}
+        <div class container>
+          <div id='calendar'></div>
+        </div>
     </main>
   </body>
 </html>

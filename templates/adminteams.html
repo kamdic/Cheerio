@@ -167,39 +167,76 @@
     <main class="mt-5 pt-3">
       <div class="container-fluid">
         <!-- where to add to white area -->
-        <table class="table table-bordered">
-          <thead>
-            <tr>
-              <th scope="col">User Id</th>
-              <th scope="col">First Name </th>
-              <th scope="col">Last Name</th>
-              <th scope="col">Email</th>
-              <th scope="col">User Type</th>
-            </tr>
-          </thead>
-          {% for user in users %} 
+        {% with messages = get_flashed_messages(with_categories=true) %} 
+        {% if messages %} 
+        {% for category, message in messages %} 
+        {% if category =='error' %}
+        <div class="alert alert-warning alert-dismissible fade show" role="alert">
+          <strong>{{message}}</strong> 
+          <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+        {% else %}
+        <div class="alert alert-success alter-dismissable fade show" role="alert">
+        <strong>{{message}}</strong>
+          <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+        {% endif %} 
+        {% endfor %} 
+        {% endif %} 
+        {% endwith %}
+        <form method = 'POST' action="{{ url_for('create_teams')}} ">
+        <table class="table">
+            <thead>
               <tr>
-                <td>{{ user.id }}</td>
-                <td>{{ user.firstName }}</td>
-                <td>{{ user.surname}}</td>
-                <td>{{ user.email }}</td>
-                <td>
-                  <form method="POST">
-                    <select class="form-select" aria-label="Default select example" name="usertype_{{ user.id }}", id= "usertype">
-                      <option selected>Select user type</option>
-                      <option value="0">Athlete</option>
-                      <option value="1">Coach</option>
-                      <option value="2">Athlete/Coach</option>
-                      <option value="3">Admin</option>
-                      <option value="4">Admin/Coach</option>
-                      <option value="5">Admin/Coach/Athlete</option>
-                    </select>
-                    <button class="btn btn-primary" type="submit">Submit</button>
-                </form>
-                </td>
-            </tr>
-          {% endfor %}
-        </table>
+                <th scope="col">Team Name</th>
+                <th scope="col">Main coach Name</th>
+                <th scope="col">Maximum Age</th>
+                <th scope= "col"></th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for team in team_names %}
+              <tr>
+                <th scope="row">{{ team_names[team][1] }}</th>
+                <td>{{ team_names[team][2] }}</td>
+                <td>{{team_names[team][0]}}</td>
+                <td><a type="Submit" class="btn btn-danger btn-sm" href= "{{url_for('delete_teams', teamid=team)}}">Delete</a></td>
+              </tr>
+              {% endfor %}
+              <tr>
+              <td><input 
+              type="text" 
+              class="form-control" 
+              id="team_name" 
+              name="team_name"
+              placeholder="Enter Team Name"
+              />
+              </td>
+              <td>
+                <select class="form-select" aria-label="Default select example" name="coach", id= "coach">
+                  <option selected>Select a coach: </option>
+                  {% for coach in coaches%}
+                    <option value="{{coach}}">{{coaches[coach][0]}}</option>
+                  {% endfor %}
+                </select>
+              </td>
+              </select>
+              <td>
+                <div class= "form-group">
+                  <input 
+                  type="number"
+                  class="form-control" 
+                  id="max_age" 
+                  name="max_age"
+                  placeholder="Enter maximum age (if applicable)"
+                  />               
+              </td>
+              <td><input class="btn btn-success" type="submit" value="Submit"></td>
+              </tr>                                          
+            </tbody>
+          </table>
+            </div>
+            </form>
       </div>
     </main>
   </body>
