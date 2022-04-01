@@ -85,10 +85,10 @@
           <li>
             <a
               class="nav-link px-3 sidebar-link"
-              href="{{ url_for('users') }}"
+              href="{{ url_for('verify_users') }}"
             >
               <span class="me-2"><i class="bi bi-layout-split"></i></span>
-              <span>Verify Users</span>
+              <span>Manage Users</span>
               <span class="ms-auto">
               </span>
             </a>
@@ -145,7 +145,16 @@
         <span>View Teamsheets</span>
         <span class="ms-auto">
         </span>
-      </a>        
+      </a>       
+      <a
+      class="nav-link px-3 sidebar-link"
+      href="{{ url_for('view_contacts') }}"
+    >
+      <span class="me-2"><i class="bi bi-layout-split"></i></span>
+      <span>Manage Contacts</span>
+      <span class="ms-auto">
+      </span>
+    </a>            
             <div class="collapse" id="layouts">
               <ul class="navbar-nav ps-3">
                 <li>
@@ -168,50 +177,89 @@
       <div class="container-fluid">
         <!-- where to add to white area -->
         {% with messages = get_flashed_messages(with_categories=true) %} 
-        {% if messages %} 
-        {% for category, message in messages %} 
-        {% if category =='error' %}
-        <div class="alert alert-warning alert-dismissible fade show" role="alert">
-          <strong>{{message}}</strong> 
-          <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-        </div>
-        {% else %}
-        <div class="alert alert-success alter-dismissable fade show" role="alert">
-        <strong>{{message}}</strong>
-          <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-        </div>
-        {% endif %} 
-        {% endfor %} 
-        {% endif %} 
+          {% if messages %} 
+            {% for category, message in messages %} 
+              {% if category =='error' %}
+                <div class="alert alert-warning alert-dismissible fade show" role="alert">
+                  <strong>{{message}}</strong> 
+                  <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
+              {% else %}
+                <div class="alert alert-success alter-dismissable fade show" role="alert">
+                <strong>{{message}}</strong>
+                  <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
+              {% endif %} 
+            {% endfor %} 
+          {% endif %} 
         {% endwith %}
         <table class="table">
           <thead>
             <tr>
               <th scope="col">#</th>
-              <th scope="col">Last Modified By:</th>
               <th scope="col">Athlete</th>
               <th scope="col">Amount(£)</th>
               <th scope="col">Paid Date</th>
               <th scope= "col">Paid</th>
+              <th></th>
             </tr>
           </thead>
           <tbody>
             {% for fee in fees %}
             <tr>
-              <th scope="row" style="color:white">{{fee[0]}}</th>
-              <td>Admin</td>
+              <th scope="row"></th>
               <td>{{fee[1] + " " + fee[2]}}</td>
-              <td>{{fee[3]}}</td>
-              <td>{{fee[4]}}</td>
-              <td>
-              <div class="form-check">
-                <input class="form-check-input" type="checkbox" value="" id="flexCheckDefault">
-                <label class="form-check-label" for="flexCheckDefault">
-                </label>
-              </div>
+              <td>{{fee[3]}}
               </td>
+              <td>{{fee[4]}}
+                <form method="POST"action="{{url_for('set_fees_date')}}">
+                  <div class= "form-group">
+                    <input 
+                    type="date"
+                    class="form-control" 
+                    id="paidDate" 
+                    name="paidDate_{{ fee[0] }}"
+                    placeholder="Enter Paid Date: "
+                    /> 
+                    <input class="btn btn-primary" type="submit" value="Submit">
+                </form>
+              </td>
+              {% if fee[5] == 1%}
+                <td>Yes</td>
+              {% else %}
+                <td>No</td>
+              {% endif %}
+              <td><a type="Submit" class="btn btn-danger btn-sm" href= "{{url_for('delete_fees', feeid=fee[0])}}">Delete</a></td>
             </tr>
             {% endfor %}
+            <tr>
+              <td>
+              </td>
+              <td>
+            <form method = 'POST' action="{{url_for('create_fees')}}">
+                <select class="form-select" aria-label="Default select example" name="athlete", id= "athlete">
+                  <option selected>Select an athlete: </option>
+                  {% for athlete in athletes%}
+                    <option value="{{athlete}}">{{athletes[athlete][0]}}</option>
+                  {% endfor %}
+                </select>
+              </td>
+              </select>
+              <td>
+                <div class= "form-group">
+                  <input 
+                  type="number"
+                  class="form-control" 
+                  id="amount" 
+                  name="amount"
+                  placeholder="Enter Amount: "
+                  />                 
+              </td>
+              <td></td>
+              <td></td>
+              <td><input class="btn btn-success" type="submit" value="Submit"></td>
+            </form>
+              </tr>           
           </tbody>
         </table>
       </div>

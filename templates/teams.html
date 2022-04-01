@@ -29,9 +29,13 @@
           <a class="nav_item nav-link" id="login" href="/login">Login</a>
           <a class="nav_item nav-link" id="signup" href="/signup">Sign Up</a>
           <a class="nav_item nav-link" id="teams" href="/teams">Teams</a>
-		  <a class="nav_item nav-link" id="events" href="/events">Events</a>
-		  <a class="nav_item nav-link" id="fees" href="/fees">Fees</a>
-      <a class="nav_item nav-link" id="athletes" href="/athletes">Athletes</a>
+		      <a class="nav_item nav-link" id="events" href="/events">Events</a>
+		      <a class="nav_item nav-link" id="fees" href="/fees">Fees</a>
+          <a class="nav_item nav-link" id="fees" href="/athletes">Athletes</a>
+          <a class="nav_item nav-link" id="fees" href="/events">Events</a>
+          <a class="nav_item nav-link" id="fees" href="/training">Training</a>
+          <a class="nav_item nav-link" id="fees" href="/teamsheet">Teamsheets</a>
+          <a class="nav_item nav-link" id="fees" href="/contacts">Contacts</a>
         </div>
       </div>
   </nav>
@@ -41,7 +45,6 @@
     <button class="navbar-toggler position-absolute d-md-none collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#sidebarMenu" aria-controls="sidebarMenu" aria-expanded="false" aria-label="Toggle navigation">
       <span class="navbar-toggler-icon"></span>
     </button>
-    <!-- <input class="form-control form-control-dark w-100" type="text" placeholder="Search" aria-label="Search"> -->
     <div class="navbar-nav">
       <div class="nav-item text-nowrap">
         <a class="nav-link px-3" href="/login">Sign Out</a>
@@ -50,11 +53,10 @@
   </header> 
       <main class="col-md-9 ms-sm-auto col-lg-10 px-md-4">
         <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
-          <h1 align= "center">Teams</h1>
+          <h1>Teams</h1>
         </div>  
-  
         <div class="container">
-          <table class="table">
+          <table class="table table-striped">
             <thead>
               <tr>
                 <th scope="col">Team Name</th>
@@ -76,5 +78,6 @@
         </div>
       </main>
     </div>
+  </div>
   </div>
   {% endblock %}

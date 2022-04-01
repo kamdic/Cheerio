@@ -21,57 +21,6 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/fullcalendar/3.9.0/fullcalendar.min.js"></script>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/fullcalendar@5.10.1/main.min.css">
     <link rel='stylesheet' type='text/css' href='https://cdnjs.cloudflare.com/ajax/libs/fullcalendar/2.7.1/fullcalendar.min.css'>
-        <script>
-
-$(document).ready(function() {
-  $("#calendar").fullCalendar({
-    header: {
-      left: "prev,next today",
-      center: "title",
-      right: "month,agendaWeek,agendaDay",
-    },
-    defaultView: "month",
-    navLinks: true, // can click day/week names to navigate views
-    selectable: true,
-    selectHelper: false,
-    editable: true,
-    eventLimit: true, // allow "more" link when too many events
-
-    select: function(start, end) {
-      var title = prompt("Event Content:");
-      var eventData;
-      if (title) {
-        eventData = {
-          title: title,
-          start: start,
-          end: end
-        };
-        $("#calendar").fullCalendar("renderEvent", eventData, true); // stick? = true
-      }
-      $("#calendar").fullCalendar("unselect");
-    },
-
-    eventRender: function(event, element) {
-      element
-        .find(".fc-content")
-        .prepend("<span class='closeon material-icons'>&#xe5cd;</span>");
-      element.find(".closeon").on("click", function() {
-        $("#calendar").fullCalendar("removeEvents", event._id);
-      });
-    },
-
-    eventClick: function(calEvent) {
-      var title = prompt("Edit Event Content:", calEvent.title);
-      calEvent.title = title;
-      $("#calendar").fullCalendar("updateEvent", calEvent);
-    },
-    
-    
-  });
-
-  calendar.render();
-});
-    </script>
   </head>
     <title>Admin Dashboard</title>
     <body>
@@ -147,10 +96,10 @@ $(document).ready(function() {
           <li>
             <a
               class="nav-link px-3 sidebar-link"
-              href="{{ url_for('users') }}"
+              href="{{ url_for('verify_users') }}"
             >
               <span class="me-2"><i class="bi bi-layout-split"></i></span>
-              <span>Verify Users</span>
+              <span>Manage Users</span>
               <span class="ms-auto">
               </span>
             </a>
@@ -207,7 +156,16 @@ $(document).ready(function() {
         <span>View Teamsheets</span>
         <span class="ms-auto">
         </span>
-      </a>        
+      </a> 
+      <a
+      class="nav-link px-3 sidebar-link"
+      href="{{ url_for('view_contacts') }}"
+    >
+      <span class="me-2"><i class="bi bi-layout-split"></i></span>
+      <span>Manage Contacts</span>
+      <span class="ms-auto">
+      </span>
+    </a>                  
             <div class="collapse" id="layouts">
               <ul class="navbar-nav ps-3">
                 <li>
@@ -250,6 +208,102 @@ $(document).ready(function() {
         <div class container>
           <div id='calendar'></div>
         </div>
+        <script>
+        $(document).ready(function() 
+        {
+          $("#calendar").fullCalendar(
+            {
+            
+            header: {
+              left: "prev,next today",
+              center: "title",
+              right: "month,agendaWeek,agendaDay"
+            },
+
+
+            defaultView: "month",
+            navLinks: true, // can click day/week names to navigate views
+            selectable: true,
+            selectHelper: true,
+            editable: true,
+            eventLimit: true, // allow "more" link when too many events
+            
+            
+
+
+
+            
+
+            
+            
+           
+              // events: [
+              //   { // this object will be "parsed" into an Event Object
+              //     title: 'The Title', // a property!
+              //     start: '2018-09-01', // a property!
+              //     end: '2018-09-02' // a property! ** see important note below about 'end' **
+              //   }
+              // ],
+            
+            select: function(start, end) {
+              var title = prompt("Event Content:");
+              var eventData;
+              if (title) {
+                eventData = {
+                  title: title,
+                  start: start,
+                  end: end,
+                  
+                
+                };
+                fetch('/createevents',{
+                  method : "POST",
+                  body: JSON.stringify({start: eventData.start._d, end:eventData.end._d, title : eventData.title }),
+                  headers: new Headers ({
+                    "content-type": "application/json"
+                    })
+                  })
+                  
+                  
+                $("#calendar").fullCalendar("renderEvent", eventData, true); // stick? = true
+              }
+              $("#calendar").fullCalendar("unselect");
+            },
+
+            eventRender: function(event, element) {
+              element
+                .find(".fc-content")
+                .prepend("<span class='closeBtn material-icons'>&#xe5cd;</span>");
+              element.find(".closeBtn").on("click", function() {
+                fetch('/deleteevents',{
+                  method : "POST",
+                  body: JSON.stringify({start: event.start._d, end:event.end._d, title : event.title}),
+                  headers: new Headers ({
+                    "content-type": "application/json"
+                    })
+                  })
+                $("#calendar").fullCalendar("removeEvents", event._id);
+              });  
+            },
+
+            eventClick: function(calEvent) {
+              var title = prompt("Edit Event Content:", calEvent.title);
+              calEvent.title = title;
+              $("#calendar").fullCalendar("updateEvent", calEvent);
+            },    
+          });
+                {% for event in events %}
+                  var myEvent = {
+                    title: "{{events[event][0]}}",
+                    start: "{{events[event][1]}}",
+                    end: "{{events[event][2]}}"
+                  };
+                  $("#calendar").fullCalendar( 'renderEvent', myEvent );
+                  console.log(myEvent)
+                {% endfor %}
+    
+        });
+            </script>
     </main>
   </body>
 </html>

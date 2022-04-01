@@ -1,0 +1,67 @@
+{% extends "base.html" %}
+
+{% block head %}
+<link rel="stylesheet" href="{{ url_for('static',filename='css/main.css') }}">
+<style>
+    .bd-placeholder-img {
+      font-size: 1.125rem;
+      text-anchor: middle;
+      -webkit-user-select: none;
+      -moz-user-select: none;
+      user-select: none;
+    }
+
+    @media (min-width: 768px) {
+      .bd-placeholder-img-lg {
+        font-size: 3.5rem;
+      }
+    }
+  </style>
+{% endblock %}
+
+{% block title %}Teams{% endblock %}
+{% block body %}
+<title>Teams</title>
+<body>
+  <nav class= "navbar navbar-expand-lg navbar-dark bg-dark">
+      <div class="collapse navbar-collapse" id="navbar">
+        <div class= "navbar-nav">
+          <a class="nav_item nav-link" id="login" href="/login">Login</a>
+          <a class="nav_item nav-link" id="signup" href="/signup">Sign Up</a>
+          <a class="nav_item nav-link" id="teams" href="/teams">Teams</a>
+		      <a class="nav_item nav-link" id="events" href="/events">Events</a>
+		      <a class="nav_item nav-link" id="fees" href="/fees">Fees</a>
+          <a class="nav_item nav-link" id="athletes" href="/athletes">Athletes</a>
+          <a class="nav_item nav-link" id="events" href="/events">Events</a>
+          <a class="nav_item nav-link" id="training" href="/training">Training</a>
+          <a class="nav_item nav-link" id="viewteamsheet" href="/teamsheet">View Teamsheets</a>
+          <a class="nav_item nav-link" id="createteamsheet" href="/createteamsheet">Create Teamsheets</a>
+          <a class="nav_item nav-link" id="fees" href="/contacts">Contacts</a>
+        </div>
+      </div>
+  </nav>
+</body> 
+<header class="navbar navbar-dark sticky-top bg-dark flex-md-nowrap p-0 shadow">
+    <a class="navbar-brand col-md-3 col-lg-2 me-0 px-3" href="#">ASCENSION EAGLES</a>
+    <button class="navbar-toggler position-absolute d-md-none collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#sidebarMenu" aria-controls="sidebarMenu" aria-expanded="false" aria-label="Toggle navigation">
+      <span class="navbar-toggler-icon"></span>
+    </button>
+    <div class="navbar-nav">
+      <div class="nav-item text-nowrap">
+        <a class="nav-link px-3" href="/login">Sign Out</a>
+      </div>
+    </div>
+  </header> 
+      <main class="col-md-9 ms-sm-auto col-lg-10 px-md-4">
+        <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+          <h1></h1>
+        </div>  
+  
+        <div class="container">
+<!-- start code here -->
+<!-- end code here -->
+        </div>
+      </main>
+    </div>
+  </div>
+  {% endblock %}

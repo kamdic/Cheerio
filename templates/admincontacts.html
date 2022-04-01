@@ -27,17 +27,31 @@
         </button>
         <a
           class="navbar-brand me-auto ms-lg-0 ms-3 text-uppercase fw-bold"
-          href="#"
           >AEC ADMIN PAGE- {{ current_user.firstName }}</a
         >
+        <button
+          class="navbar-toggler"
+          type="button"
+          data-bs-toggle="collapse"
+          data-bs-target="#topNavBar"
+          aria-controls="topNavBar"
+          aria-expanded="false"
+          aria-label="Toggle navigation"
+        >
+          <span class="navbar-toggler-icon"></span>
+        </button>
         <div class="collapse navbar-collapse" id="topNavBar">
           <form class="d-flex ms-auto my-3 my-lg-0">
             <div class="input-group">
               <a href ="{{ url_for('logout') }}" class="btn btn-primary">
                 <i class="bi bi-door-open-fill"></i>
             </a>
-        </div>
-        
+            </div>
+          </form>
+          <ul class="navbar-nav">
+                <i class="bi data-bs-dismiss"></i>
+              </a>
+          </ul>
         </div>
       </div>
     </nav>
@@ -131,7 +145,7 @@
         <span>View Teamsheets</span>
         <span class="ms-auto">
         </span>
-      </a> 
+      </a>       
       <a
       class="nav-link px-3 sidebar-link"
       href="{{ url_for('view_contacts') }}"
@@ -140,7 +154,7 @@
       <span>Manage Contacts</span>
       <span class="ms-auto">
       </span>
-    </a>          
+    </a>            
             <div class="collapse" id="layouts">
               <ul class="navbar-nav ps-3">
                 <li>
@@ -161,88 +175,90 @@
     <!-- offcanvas -->
     <main class="mt-5 pt-3">
       <div class="container-fluid">
-        <div class="row">
-          <div class="col-md-12">
-            <h4>Dashboard</h4>
-          </div>
+        <!-- where to add to white area -->
+        {% with messages = get_flashed_messages(with_categories=true) %} 
+        {% if messages %} 
+        {% for category, message in messages %} 
+        {% if category =='error' %}
+        <div class="alert alert-warning alert-dismissible fade show" role="alert">
+          <strong>{{message}}</strong> 
+          <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
         </div>
-        <div class="row">
-            <div class="col-md-3 mb-3 text-center">
-              <a href="{{ url_for('verify_users') }}">
-                <div class="card bg-secondary text-white h-100">
-                  <div class="card-body py-5">Manage Users</div>
-                </div>
-              </a>
-            </div>
-            <div class="col-md-3 mb-3 text-center">
-              <a href="{{ url_for('view_fees') }}">
-                <div class="card bg-secondary text-white h-100">
-                  <div class="card-body py-5">Manage Fees</div>
-                </div>
-              </a>
-            </div>
-            <div class="col-md-3 mb-3 text-center">
-              <a href="{{ url_for('view_teams') }}">
-                <div class="card bg-secondary text-white h-100">
-                  <div class="card-body py-5">Manage Teams</div>
-                </div>
-              </a>
-            </div>
-            <div class="col-md-3 mb-3 text-center">
-              <a href="{{ url_for('view_events') }}">
-                <div class="card bg-secondary text-white h-100">
-                  <div class="card-body py-5">Manage Events</div>
-                </div>
-              </a>
-            </div>
+        {% else %}
+        <div class="alert alert-success alter-dismissable fade show" role="alert">
+        <strong>{{message}}</strong>
+          <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
         </div>
-        <div class="row">
-          <div class="col-md-3 mb-3 text-center">
-            <a href="{{ url_for('view_teamsheet') }}">
-              <div class="card bg-secondary text-white h-100">
-                <div class="card-body py-5">View Teamsheets</div>
-              </div>
-            </a>
-          </div>
-          <div class="col-md-3 mb-3 text-center">
-            <a href="{{ url_for('view_training') }}">
-              <div class="card bg-secondary text-white h-100">
-                <div class="card-body py-5">Manage Training</div>
-              </div>
-            </a>
-          </div>
-          <div class="col-md-3 mb-3 text-center">
-            <a href="{{ url_for('view_athletes') }}">
-              <div class="card bg-secondary text-white h-100">
-                <div class="card-body py-5">Manage Athletes</div>
-              </div>
-            </a>
-          </div>
-          <div class="col-md-3 mb-3 text-center">
-            <a href="{{ url_for('view_contacts') }}">
-              <div class="card bg-secondary text-white h-100">
-                <div class="card-body py-5">Manage Contacts</div>
-              </div>
-            </a>
-          </div>
-          </div>
-          </div>
-          <div class="container-fluid">
-            <h4>Birthdays</h4>
-              {% for user in birthdays%}
-                <h6>{{birthdays[user][0]}} is {{birthdays[user][1]}} today!</h6>
-              {% endfor %}
-            <h4>Anniversaries</h4>
-            {% for user in anniversaries%}
-              {%if anniversaries[user][1] == 1%}
-                <h6>{{anniversaries[user][0]}} has been in the programme for {{anniversaries[user][1]}} year!</h6>
-              {% else %}
-                <h6>{{anniversaries[user][0]}} has been in the programme for {{anniversaries[user][1]}} years!</h6>
-              {% endif %}
+        {% endif %} 
+        {% endfor %} 
+        {% endif %} 
+        {% endwith %}
+        <form method = 'POST' action="{{ url_for('create_contacts')}} ">
+        <table class="table">
+          <thead>
+            <tr>
+              <th scope="col">#</th>
+              <th scope="col">Athlete Name</th>
+              <th scope="col">Emergency Contact Name</th>
+              <th scope="col">Emergency Contact Number</th>
+              <th scope="col"></th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for contact in contacts %}
+            <tr>
+              <th scope="row">{{ contact[0]}}</th>
+              <td>{{ contact[1] + " " + contact[2]}}</td>
+              <td>{{ contact[3] + " " + contact[4] }}</td>
+              <td>{{contact[5]}}</td>
+              <td><a type="Submit" class="btn btn-danger btn-sm" href= "{{url_for('delete_contacts', contactid=contact[0])}}">Delete</a></td>
+            </tr>
             {% endfor %}
-          </div>
-        </div>
-        </div>
+            <tr>
+              <td>
+              </td>
+              <td>
+                <select class="form-select" aria-label="Default select example" name="athlete", id= "athlete">
+                  <option selected>Select an athlete: </option>
+                  {% for athlete in athletes%}
+                    <option value="{{athlete}}">{{athletes[athlete][0]}}</option>
+                  {% endfor %}
+                </select>
+              </td>
+              <td>
+                <div class= "form-group">
+                  <input 
+                  type="text"
+                  class="form-control" 
+                  id="firstName" 
+                  name="firstName"
+                  placeholder="Enter Emergency Contact First Name: "
+                  /> 
+                <div class= "form-group">
+                  <input 
+                  type="text"
+                  class="form-control" 
+                  id="surname" 
+                  name="surname"
+                  placeholder="Enter Emergency Contact Surname: "
+                  />                       
+              </td>
+              <td>
+                <div class="form-group">
+                  <input
+                   type='text'
+                   class="form-control"
+                   id="number"
+                   name="number"
+                   placeholder="Enter Emergency Contact Number: "
+                  />
+                </div>
+              </td>
+              <td><input class="btn btn-success" type="submit" value="Submit"></td>
+              </tr>           
+          </tbody>
+        </table>
+        </form>
       </div>
     </main>
   </body>

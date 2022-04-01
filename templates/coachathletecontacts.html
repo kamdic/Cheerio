@@ -53,11 +53,47 @@
   </header> 
       <main class="col-md-9 ms-sm-auto col-lg-10 px-md-4">
         <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
-          <h1></h1>
+          <h1>Contacts</h1>
         </div>  
   
         <div class="container">
 <!-- start code here -->
+        <h2>Own Contacts</h2>
+          <table class="table">
+            <thead>
+              <tr>
+                <th scope="col">Contact Name</th>
+                <th scope="col">Number</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for contact in own_contacts %}
+              <tr>
+                <td>{{ contact[0] + " " + contact[1] }}</td>
+                <td>{{contact[2]}}</td> 
+              </tr>                               
+              {% endfor %}              
+            </tbody>
+          </table>
+        <h2>{{name}}'s Contacts</h2>
+        <table class="table">
+            <thead>
+              <tr>
+                <th scope="col">Athlete Name</th>
+                <th scope="col">Contact Name</th>
+                <th scope="col">Number</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for athlete in athletes %}
+              <tr>
+                <td>{{ athletes[athlete][0] + " " + athletes[athlete][1] }}</td>
+                <td>{{athletes[athlete][2] + " "+athletes[athlete][3]}}</td>
+                <td>{{athletes[athlete][4]}}</td>
+              </tr>                               
+              {% endfor %}              
+            </tbody>
+          </table>
 <!-- end code here -->
         </div>
       </main>

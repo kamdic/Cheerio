@@ -31,10 +31,11 @@
           <a class="nav_item nav-link" id="teams" href="/teams">Teams</a>
 		      <a class="nav_item nav-link" id="events" href="/events">Events</a>
 		      <a class="nav_item nav-link" id="fees" href="/fees">Fees</a>
-          <a class="nav_item nav-link" id="fees" href="/athletes">Athletes</a>
-          <a class="nav_item nav-link" id="fees" href="/events">Events</a>
-          <a class="nav_item nav-link" id="fees" href="/training">Training</a>
-          <a class="nav_item nav-link" id="fees" href="/teamsheet">Teamsheets</a>
+          <a class="nav_item nav-link" id="athletes" href="/athletes">Athletes</a>
+          <a class="nav_item nav-link" id="events" href="/events">Events</a>
+          <a class="nav_item nav-link" id="training" href="/training">Training</a>
+          <a class="nav_item nav-link" id="viewteamsheet" href="/teamsheet">View Teamsheets</a>
+          <a class="nav_item nav-link" id="createteamsheet" href="/createteamsheet">Create Teamsheets</a>
           <a class="nav_item nav-link" id="fees" href="/contacts">Contacts</a>
         </div>
       </div>
@@ -50,7 +51,8 @@
         <a class="nav-link px-3" href="/login">Sign Out</a>
       </div>
     </div>
-  </header> 
+  </header>
+
       <main class="col-md-9 ms-sm-auto col-lg-10 px-md-4">
         <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
           <h1></h1>
@@ -58,6 +60,10 @@
   
         <div class="container">
 <!-- start code here -->
+            
+            {%for event in events%}
+
+            {% endfor %}
 <!-- end code here -->
         </div>
       </main>

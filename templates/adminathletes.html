@@ -85,10 +85,10 @@
           <li>
             <a
               class="nav-link px-3 sidebar-link"
-              href="{{ url_for('users') }}"
+              href="{{ url_for('verify_users') }}"
             >
               <span class="me-2"><i class="bi bi-layout-split"></i></span>
-              <span>Verify Users</span>
+              <span>Manage Users</span>
               <span class="ms-auto">
               </span>
             </a>
@@ -145,7 +145,16 @@
         <span>View Teamsheets</span>
         <span class="ms-auto">
         </span>
-      </a>        
+      </a>       
+      <a
+      class="nav-link px-3 sidebar-link"
+      href="{{ url_for('view_contacts') }}"
+    >
+      <span class="me-2"><i class="bi bi-layout-split"></i></span>
+      <span>Manage Contacts</span>
+      <span class="ms-auto">
+      </span>
+    </a>            
             <div class="collapse" id="layouts">
               <ul class="navbar-nav ps-3">
                 <li>
@@ -185,7 +194,7 @@
         {% endif %} 
         {% endwith %}
         {% for table in range(team_count) %}
-        <form method = 'POST' action="{{ url_for('create_athletes')}} "></form>
+        <form method = 'POST' action="{{ url_for('create_athletes')}} ">
         <table class="table" width="100%">
           <thead>
             <tr>
@@ -198,28 +207,27 @@
             {% for athlete in teams[table+1]%}
             <tr>
               <th scope= "row"></th>
-              <td>{{athlete}}</td>
-              <td><a type="Submit" class="btn btn-danger btn-sm" href= "{{url_for('delete_athletes')}}">Delete</a></td>
+              <td>{{athlete.lstrip('0123456789.-')}}</td>
+              <td><a type="Submit" class="btn btn-danger btn-sm" href= "{{url_for('delete_athletes', teammemberid=athlete)}}">Delete</a></td>
             </tr>   
             {% endfor %}                            
             <tr>
               <td>
               </td>
               <td>
-                <select class="form-select" aria-label="Default select example" name="coach", id= "coach">
+                <select class="form-select" aria-label="Default select example" name="athlete", id= "athlete">
                   <option selected>Select an athlete: </option>
-                  {% for athlete in athletes%}
-                    <option value="{{coach}}">{{coaches[coach][0]}}</option>
+                  {% for athlete in possible_athletes[table+1]%}
+                    <option value="{{table+1}}_{{athlete}}">{{athlete.lstrip('0123456789.-')}}</option>
                   {% endfor %}
                 </select>
               </td>
-              </select>
               <td><input class="btn btn-success" type="submit" value="Submit"></td>
               </tr>                                          
             </tbody>
-        </table>
-      </form>
-      {% endfor %}  
+          </form>
+          </table>
+        {% endfor %}  
       </div>
     </main>
   </body>
