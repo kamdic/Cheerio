@@ -190,10 +190,10 @@
           </thead>
           {% for user in unverified_users %} 
               <tr>
-                <td>{{ user[0] }}</td>
-                <td>{{ user[1] }}</td>
-                <td>{{ user[2]}}</td>
-                <td>{{ user[3] }}</td>
+                <td>{{ user }}</td>
+                <td>{{ unverified_users[user][0] }}</td>
+                <td>{{ unverified_users[user][1]}}</td>
+                <td>{{ unverified_users[user][2] }}</td>
                 <td>
                   <form method="POST" action="{{url_for('verify_users')}}">
                     <select class="form-select" aria-label="Default select example" name="usertype_{{ user }}", id= "usertype">
@@ -208,7 +208,7 @@
                     <button class="btn btn-primary" type="submit">Submit</button>
                 </form>
                 </td>
-                <td><a type="Submit" class="btn btn-danger btn-sm" href= "{{url_for('delete_users', userid=user[0])}}">Delete</a></td>
+                <td><a type="Submit" class="btn btn-danger btn-sm" href= "{{url_for('delete_users', userid=user)}}">Delete</a></td>
             </tr>
           {% endfor %}
         </table>

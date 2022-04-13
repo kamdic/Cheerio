@@ -31,13 +31,11 @@
           <a class="nav_item nav-link" id="teams" href="/teams">Teams</a>
 		      <a class="nav_item nav-link" id="events" href="/events">Events</a>
 		      <a class="nav_item nav-link" id="fees" href="/fees">Fees</a>
-          <a class="nav_item nav-link" id="fees" href="/athletes">Athletes</a>
-          <a class="nav_item nav-link" id="fees" href="/events">Events</a>
-          <a class="nav_item nav-link" id="fees" href="/training">Training</a>
+          <a class="nav_item nav-link" id="athletes" href="/athletes">Athletes</a>
+          <a class="nav_item nav-link" id="events" href="/events">Events</a>
+          <a class="nav_item nav-link" id="training" href="/training">Training</a>
           <a class="nav_item nav-link" id="viewteamsheet" href="/teamsheet">View Teamsheets</a>
-          {% if current_user.usertype > 0%}
-            <a class="nav_item nav-link" id="createteamsheet" href="/createteamsheet">Create Teamsheets</a>
-          {% endif %}
+          <a class="nav_item nav-link" id="createteamsheet" href="/createteamsheet">Create Teamsheets</a>
           <a class="nav_item nav-link" id="fees" href="/contacts">Contacts</a>
         </div>
       </div>
@@ -56,29 +54,64 @@
   </header> 
       <main class="col-md-9 ms-sm-auto col-lg-10 px-md-4">
         <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
-          <h1>Contacts</h1>
+          <h1>Add Athletes</h1>
         </div>  
   
         <div class="container">
 <!-- start code here -->
-          <table class="table">
+        <h3>Athletes on Team:</h3>
+          <table class="table table-striped">
             <thead>
               <tr>
-                <th scope="col">Contact Name</th>
-                <th scope="col">Number</th>
-                <th scope="col"></th>
-                <th scope= "col"></th>
+                <th scope="col"> #</th>
+                <th scope="col">Athlete Name</th>
               </tr>
             </thead>
             <tbody>
-              {% for contact in contacts %}
+              {%for athlete in athletes%}
               <tr>
-                <td>{{ contact[0] + " " + contact[1] }}</td>
-                <td>{{contact[2]}}</td> 
-              </tr>                               
-              {% endfor %}              
+                <th scope= "row"></th>
+                <td>{{ athletes[athlete][0]}}</td>
+              </tr>
+              {% endfor %}
             </tbody>
           </table>
+          
+          <form method="POST" action="{{url_for('add_athletes')}}">
+          <h3>Create Team Sheet</h3>
+          <table class="table table-striped">
+            <thead>
+              <tr>
+                <th scope="col"> #</th>
+                <th scope="col">Athlete Name</th>
+              </tr>
+            </thead>
+            <tbody>
+              {%for row in range(size)%}
+              <tr>
+                <th>
+                <select class="form-select" aria-label="Default select example" name="athlete", id= "athlete">
+                    <option selected>Select an athlete: </option>
+                    {% for athlete in athletes%}
+                      <option value="{{athlete}}">{{athletes[athlete][0]}}</option>
+                    {% endfor %}
+                  </select>
+                </th>
+                <th>
+                <select class="form-select" aria-label="Default select example" name="role", id= "role">
+                    <option selected>Select their role: </option>
+                    {% for role in roles%}
+                      <option value="{{role}}">{{role}}</option>
+                    {% endfor %}
+                </select>
+                </th>
+              </tr>
+              {% endfor %}
+              <tr><button class="btn btn-success" type="submit">Submit</button></tr>
+            </tbody>
+          </table>
+          </form>      
+          
 <!-- end code here -->
         </div>
       </main>

@@ -29,7 +29,6 @@ class User(db.Model, UserMixin):
     firstName = db.Column(db.String(50),nullable = False)
     surname = db.Column(db.String(50), nullable = False)
     dob = db.Column(db.DateTime, nullable = False)    
-    school_URN = db.Column(db.Integer, nullable = True)
     start_date = db.Column(db.DateTime, nullable = True, default=date.today())
     email = db.Column(db.String(70), nullable = False)
     password = db.Column(db.String(255), nullable = False)
@@ -52,8 +51,8 @@ class Team_Details(db.Model):
 
 class Team_Events(db.Model): #The coach decides they want to make a team for this event so will use the teamsheet id, the id of the event they want the team for and the team the sheet is being created for
     team_sheet_id= db.Column(db.Integer, primary_key=True)
-    event_id = db.Column(db.Integer, primary_key = True)
-    team_id = db.Column(db.Integer, primary_key= True)
+    event_id = db.Column(db.Integer)
+    team_id = db.Column(db.Integer)
     size = db.Column(db.Integer, nullable=False)
 
 class Team_Members(db.Model): 
@@ -68,7 +67,6 @@ class Team_Sheet(db.Model): #Will add each athlete to the teamsheet from team me
 class Training(db.Model):
     training_id= db.Column(db.Integer, primary_key=True)
     team_id= db.Column(db.Integer)
-    coach_id= db.Column(db.Integer)
     athlete_id= db.Column(db.Integer)
     start_date_time= db.Column(db.DateTime, nullable = False)
     end_date_time = db.Column(db.DateTime, nullable = False)
@@ -96,6 +94,23 @@ def age(born):
     today = str(date.today()).split("-")
     return int(today[0]) - int(born[0]) - (((int(today[1]), int(today[2]))) < ((int(born[1]), int(born[2]))))
 
+def isValid(email):
+    regex = re.compile(r'([A-Za-z0-9]+[.-_])*[A-Za-z0-9]+@[A-Za-z0-9-]+(\.[A-Z|a-z]{2,})+')
+    if re.fullmatch(regex, email):
+      return True
+    else:
+      return False
+  
+def password(passwd):
+    reg = "^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*#?&])[A-Za-z\d@$!#%*?&]{6,}$"
+    pat = re.compile(reg)               
+    mat = re.search(pat, passwd)
+    # validating conditions
+    if mat:
+        return True
+    else:
+        return False
+
 @app.errorhandler(404)
 def not_found(error):
     return render_template('error.html', error= error)
@@ -108,14 +123,13 @@ def server_error(error):
 def index():
     return redirect(url_for('login'))
 
-@app.route('/signup',  methods=['GET', 'POST'])
+@app.route('/signup',  methods=['GET', 'POST']) #add validation and remove school URN
 def signup():
     if request.method == 'POST':
         email = request.form.get('email')
         firstName = request.form.get('firstName')
         surname = request.form.get('surname')
         dob = request.form.get("dob")
-        school_URN= request.form.get("school_URN")
         start_date= request.form.get("start_date")
         password1 = request.form.get('password1')
         password2 = request.form.get('password2')
@@ -124,11 +138,15 @@ def signup():
             flash('There is already an account using this email', category='error')
         elif len(email) <= 3:
             flash('Your email is too short.', category='error')
+        elif not isValid(email):
+            flash("You're email is invalid",category='error')
+        elif not password(password1):
+            flash('Your password must be at least 6 characters, include one number, one uppercase letter, a lowercase letter, and a special symbol', category='error')
         elif password1 != password2:
             flash('Passwords don\'t match.', category='error')
         else:
             dob = dob.split("-")
-            new_user = User(email=email, firstName=firstName, surname=surname, school_URN=school_URN, dob = datetime(int(dob[0]), int(dob[1]), int(dob[2])), start_date=start_date, password=generate_password_hash(password1, method='sha256'))
+            new_user = User(email=email, firstName=firstName, surname=surname, dob = datetime(int(dob[0]), int(dob[1]), int(dob[2])), start_date=start_date, password=generate_password_hash(password1, method='sha256'))
             db.session.add(new_user)
             db.session.commit()
             flash('Your account has been created. Wait for the admin user to verify it.', category='success')
@@ -147,7 +165,6 @@ def login():
                 if user.verified == 1:
                     login_user(user)
                     if user.usertype < 4:
-                        flash('Login Successful', category='success')
                         return redirect(url_for('view_teams',user=current_user))
                     else:
                         return redirect(url_for('admin'))
@@ -165,7 +182,7 @@ def logout():
     logout_user()
     return redirect(url_for('login'))
 
-@app.route('/admin')
+@app.route('/admin')#check user access levels
 @login_required
 def admin():
     query = db.engine.execute('SELECT id, firstName, surname, dob, start_date FROM user ORDER BY start_date DESC')
@@ -182,29 +199,30 @@ def admin():
             anniversaries[user[0]] = [user[1] + " " + user[2], year]
     return render_template('admin.html',birthdays=birthdays, anniversaries= anniversaries)
 
-@app.route('/users', methods= ['GET', 'POST'])
+@app.route('/users', methods= ['GET', 'POST'])#user levels, 
 @login_required
 def verify_users():
-    if current_user.usertype < 4:
+    if current_user.usertype < 3:
         return render_template('error.html')
-    unverified_users = []
+    unverified_users = {}
     query = db.engine.execute('SELECT id, firstName, surname, email FROM user WHERE verified < {}'.format(1))
     for user in query:
-        unverified_users += user
+        unverified_users[user[0]] = [user[1],user[2],user[3]]
     valid = False
     for item in request.values:
+        print(item)
         item.split(("_"))
         if "_" in item:
             items = item.split("_")
             if len(items) == 2 and items[0].lower() == "usertype":
                 try:
-                    int(items[1][1])
+                    int(items[1])
                     valid = item
                 except:
                     redirect(url_for('verify_users'))
     if valid:
         usertype = request.form.get(valid)
-        userid = valid.split("_")[1][1]
+        userid = valid.split("_")[1]
         if request.method == 'POST':
             if usertype == 'Select user type':
                 flash('You must select a usertype',category='error')
@@ -320,16 +338,12 @@ def create_teams():
 @login_required
 def view_athletes():
     if -1 < current_user.usertype < 3:
-        #need the team name, coach name, and all athlete names
-        #you can get the team id from team members where the athlete id is the user id, and then for each team create a list which will have the team name and coach name
-        #do the same query, but instead, get the team ids where the user id is the coach id
-        #for each team, you will use the team id again to search team members, and find the names of each athlete in the team and store the names in a separate list
-        #make the key a list and it will contain the team name and coach name, and the value will be the list of athlete names
         query = db.engine.execute('SELECT team__details.team_id FROM team__members,team__details WHERE team__members.athlete_id = {} AND team__details.team_id = team__members.team_id OR team__details.coach_id = {}'.format(current_user.id,current_user.id))
         teams = []
         for team in query:
             teams.append(team[0])
         teams = set(teams)
+        print(teams)
         team_members = {}
         for team in teams:
             athletes = []
@@ -420,13 +434,13 @@ def create_athletes():
 @app.route('/events')
 @login_required
 def view_events():
+    cal_events = {}
+    query = db.engine.execute("SELECT events_id, event_name, event_start_date, event_end_date FROM Events")
+    for event in query:
+        cal_events[event[0]] = [event[1],event[2],event[3]]      
     if -1 < current_user.usertype < 3:
-        return render_template('events.html')
-    elif current_user.usertype >2:
-        cal_events = {}
-        query = db.engine.execute("SELECT events_id, event_name, event_start_date, event_end_date FROM Events")
-        for event in query:
-            cal_events[event[0]] = [event[1],event[2],event[3]]     
+        return render_template('events.html', events=cal_events)
+    elif current_user.usertype >2: 
         return render_template('adminevents.html', events=cal_events)
 
 @app.route('/createevents', methods= ['GET','POST'])
@@ -554,6 +568,7 @@ def delete_fees(feeid):
 @login_required
 def view_training():
     if -1 < current_user.usertype < 4:
+        view_events()
         return render_template('training.html')
     elif current_user.usertype >3:
         return render_template('admintraining.html')
@@ -658,29 +673,70 @@ def view_teamsheet():
     elif current_user.usertype == 0:
         return render_template('teamsheet.html')
     elif 0 < current_user.usertype < 3:
-        
-        return render_template('coachteamsheet.html')
-    
+        team_sheets = {}
+        events = []
+        options = {}
+        query = db.engine.execute('SELECT team__events.team_sheet_id, events.event_name FROM events, team__events, team__details WHERE events.events_id = team__events.event_id  AND team__details.team_id = team__events.team_id AND team__details.coach_id = {} ORDER BY team__events.team_sheet_id'.format(current_user.id))
+        for event in query:
+            events.append(event)
+        for event in events:
+            team_sheet_id = event[0]
+            athletes = []
+            query = db.engine.execute('SELECT user.firstName, user.surname, team__sheet.role,user.id FROM team__sheet,user WHERE team__sheet.team_sheet_id = {} AND user.id = team__sheet.athlete_id'.format(team_sheet_id))
+            for athlete in query:
+                athletes.append(athlete)
+            team_sheets[event[0]] = [event[1],athletes]
+        query = db.engine.execute('SELECT user.id, user.firstName, user.surname FROM user, team__events, team__details,team__members WHERE team__events.team_id = team__details.team_id AND team__details.coach_id = {} AND team__members.team_id = team__details.team_id AND user.id = team__members.athlete_id'.format(current_user.id))
+        for athlete in query:
+            options[athlete[0]] = [athlete[1] + " " + athlete[2]]
+        return render_template('coachteamsheet.html', team_sheets=team_sheets,athletes=options)
     return render_template('adminteamsheet.html')
 
-@app.route('/createteamsheet')
+@app.route('/createteamsheet',methods=['GET','POST'])
 @login_required
 def create_teamsheet():
+    sizes = {0:"X Small (5-14)",1:"Small (15-22)",2:"Medium (23-32)",3:"Large (33-38)"}
+    max_sizes = {0:14,1:22,2:32,3:38}
     query = db.engine.execute('SELECT * FROM Events') #id, name, start, end
     events = {}
     for event in query:
         event_start_date = event[2].split(" ")[0]
         event_start_date = event_start_date.split("-")
         event_start_date = date(int(event_start_date[0]),int(event_start_date[1]),int(event_start_date[2]))
-        print(event_start_date > date.today())
         if event_start_date > date.today():
-            events[event[0]] = [event[1],event[2],event[3]]
-    return render_template('createteamsheet.html', events = events)
+            events[event[0]] = [event[1],event[2].split(" ")[0],event[3].split(" ")[0]]
+    existing_sheets = {}
+    query = db.engine.execute('SELECT team__events.team_sheet_id, events.event_name, team__events.size FROM team__details, events, team__events WHERE team__details.team_id = team__events.team_id AND events.events_id = team__events.event_id AND team__details.coach_id = {}'.format(current_user.id))
+    for team in query:
+        existing_sheets[team[0]] = [team[1],sizes[team[2]]]
+    query = db.engine.execute('SELECT team_id, team_name FROM team__details WHERE coach_id = {}'.format(current_user.id))
+    for team in query:
+        team_name =team[1]
+    return render_template('createteamsheet.html', events = events, team = team_name,sizes=sizes, team_sheets=existing_sheets, count=0)
 
 @app.route('/deleteteamsheet/<teamsheetid>')
 @login_required
 def delete_teamsheet(teamsheetid):
-    return 'Allow coach to delete teamsheet'
+    query = db.engine.execute("DELETE FROM team__events WHERE team_sheet_id = {}".format(teamsheetid))
+    query = db.engine.execute("DELETE FROM team__sheet WHERE team_sheet_id = {}".format(teamsheetid))
+    db.session.commit()
+    return redirect(url_for('create_teamsheet'))
+
+@app.route('/teamsheet/addathletes/<teamsheetid>', methods=['GET','POST'])
+@login_required
+def add_athletes(teamsheetid):
+    athlete_id= request.form.get('athlete')
+    role = request.form.get('role')
+    query = db.engine.execute("INSERT INTO team__sheet VALUES ('{}','{}','{}')".format(teamsheetid,athlete_id,role))
+    db.session.commit()
+    return redirect(url_for('view_teamsheet'))
+
+@app.route('/deletefromteamsheet/<teamsheetid>/<athleteid>')
+def delete_from_teamsheet(teamsheetid,athleteid):
+    query = db.engine.execute('DELETE FROM team__sheet WHERE team_sheet_id = {} AND athlete_id = {}'.format(teamsheetid,athleteid))
+    return redirect(url_for('view_teamsheet'))
+
+
 
 
 
