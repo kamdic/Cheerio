@@ -55,29 +55,73 @@
   </header> 
       <main class="col-md-9 ms-sm-auto col-lg-10 px-md-4">
         <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
-          <h1></h1>
+          <h1>Teamsheets</h1>
         </div>  
   
         <div class="container">
 <!-- start code here -->
-        {% for team_sheet in team_sheets%}
-          <h3>{{team_sheets[team_sheet][0]}} - {{team_sheets[team_sheet][1]}}</h3>
+        {% for team_sheet in own_team_sheets%}
+        <h3>{{own_team_sheets[team_sheet][0]}} - {{own_team_sheets[team_sheet][1]}}</h3>
+        <table class="table table-striped">
+        <thead>
+            <tr>
+            <th scope="col">Athlete Name</th>
+            <th scope="col"> Role</th>
+            </tr>
+        </thead>
+        <tbody>
+            {%for athlete in own_team_sheets[team_sheet][2]%}
+            <tr>
+            <td> {{athlete[0] + " " + athlete[1]}}</td>
+            <td> {{athlete[2]}}</td>
+            </tr>
+            {% endfor %}  
+        </tbody>
+        </table>
+        {% endfor %}
+          {% for team_sheet in coach_team_sheets%}
+          <h3>{{coach_team_sheets[team_sheet][0]}}</h3>
+          <form method = 'POST' action="{{ url_for('add_athletes', teamsheetid=team_sheet)}} ">
           <table class="table table-striped">
             <thead>
               <tr>
                 <th scope="col">Athlete Name</th>
                 <th scope="col"> Role</th>
+                <th scope="col"></th>
               </tr>
             </thead>
             <tbody>
-              {%for athlete in team_sheets[team_sheet][2]%}
+              {%for athlete in coach_team_sheets[team_sheet][1]%}
               <tr>
                 <td> {{athlete[0] + " " + athlete[1]}}</td>
                 <td> {{athlete[2]}}</td>
+                <td><a type="Submit" class="btn btn-danger btn-sm" href= "{{url_for('delete_from_teamsheet', teamsheetid=team_sheet, athleteid=athlete[3]   )}}">Delete</a></td>
               </tr>
-              {% endfor %}  
+              {% endfor %}
+                <td>
+                  <select class="form-select" aria-label="Default select example" name="athlete", id= "athlete">
+                    <option selected>Select an athlete: </option>
+                    {% for athlete in athletes%}
+                      <option value="{{athlete}}">{{athletes[athlete][0]}}</option>
+                    {% endfor %}
+                    </select>
+                </td>
+                </select>
+                <td>
+                  <div class= "form-group">
+                    <input 
+                    type="text"
+                    class="form-control" 
+                    id="role" 
+                    name="role"
+                    placeholder="Enter athlete role"
+                    />               
+                </td>
+                <td><input class="btn btn-success" type="submit" value="Submit"></td>
+                </tr>  
             </tbody>
           </table>
+          </form>
           {% endfor %}
 <!-- end code here -->
         </div>

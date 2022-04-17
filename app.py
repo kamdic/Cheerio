@@ -203,7 +203,6 @@ def verify_users():
         unverified_users[user[0]] = [user[1],user[2],user[3]]
     valid = False
     for item in request.values:
-        print(item)
         item.split(("_"))
         if "_" in item:
             items = item.split("_")
@@ -357,57 +356,88 @@ def create_teams():
         return redirect(url_for('view_teams'))
     return render_template('adminteams.html', coaches = coaches)
 
-@app.route('/athletes')#athlete, athlete/coach and coach route 
+@app.route('/athletes')#complete
 @login_required
 def view_athletes():
-    if current_user.usertype not in [0,1,2,3] or current_user.verified != 1:
-        return render_template('error.html',error="You are not authorised to view this page")
-    elif  current_user.usertype == 0:
-        return render_template('athletes.html')
-    elif  current_user.usertype == 1:
-        return render_template('athletes.html')
-    elif  current_user.usertype == 2:
-        return render_template('athletes.html')           
-    elif current_user.usertype == 3:
-        team_count = db.engine.execute("SELECT COUNT(team_id) FROM team__details")
-        teams = {}
-        count = 1
-        index = 0
-        for amount in team_count:
-            team_count = amount[0]
-        for team in range(team_count):
-            query = db.engine.execute("SELECT user.id, user.firstName, user.surname, user.dob FROM user, team__members WHERE user.id = team__members.athlete_id AND team__members.team_id = {}".format(count))
+    try:
+        if current_user.usertype not in [0,1,2,3] or current_user.verified != 1:
+            return render_template('error.html',error="You are not authorised to view this page")
+        elif  current_user.usertype == 0:
+            members = {}
+            query = db.engine.execute('SELECT team__details.team_id, team__details.team_name FROM team__members, team__details WHERE team__details.team_id = team__members.team_id AND team__members.athlete_id = {}'.format(current_user.id))
+            for team in query:
+                athletes =[]
+                query = db.engine.execute('SELECT user.firstName, user.surname FROM user, team__members WHERE user.id = team__members.athlete_id AND team__members.team_id = {}'.format(team[0]))
+                for athlete in query:
+                    athletes.append(athlete[0] + " " + athlete[1])
+                members[team[0]] = [team[1],athletes]
+            return render_template('athletes.html',members=members)
+        elif  current_user.usertype == 1:
+            team_members = {}
+            query = db.engine.execute('SELECT team__details.team_id, team__details.team_name FROM team__members, team__details WHERE team__details.team_id = team__members.team_id AND team__members.athlete_id = {}'.format(current_user.id))
+            for team in query:
+                athletes =[]
+                query = db.engine.execute('SELECT user.firstName, user.surname FROM user, team__members WHERE user.id = team__members.athlete_id AND team__members.team_id = {}'.format(team[0]))
+                for athlete in query:
+                    athletes.append(athlete[0] + " " + athlete[1])
+                team_members[team[0]] = [team[1],athletes]
+            coach_members = {}
             athletes = []
-            for athlete in query:
-                element = [str(index) +athlete[1] + " " + athlete[2]]
-                athletes += element
-                index +=1
-            if len(athletes) > 0:
-                teams[count] = athletes
-            count +=1
-        team_names = []
-        query = db.engine.execute("SELECT team_name FROM team__details")
-        for team_name in query:
-            team_names.append(team_name)
-        possible_athletes = {}
-        query = db.engine.execute('SELECT team_id, max_age FROM team__details')
-        for team in query:
-            max_age = team[1]
-            eligible_athletes = []
-            athletes = db.engine.execute('SELECT id, firstName, surname, dob FROM user')
-            if max_age:
-                for athlete in athletes:
-                    athlete_date = athlete[3].rstrip("00:00:00.0000000")
-                    athlete_age = eligibity_age(athlete_date)
-                    if max_age >= athlete_age:
+            query = db.engine.execute('SELECT team__details.team_name, user.firstName, user.surname FROM team__details, user, team__members WHERE team__details.team_id = team__members.team_id AND team__details.coach_id = {} AND user.id = team__members.athlete_id'.format(current_user.id))
+            for member in query:
+                team_name = member[0]
+                athletes.append(member[1] + " " + member[2])   
+            coach_members[team_name] = athletes           
+            return render_template('coachathleteathletes.html',team_members=team_members,coach_members=coach_members)
+        elif  current_user.usertype == 2:
+            members = {}
+            athletes = []
+            query = db.engine.execute('SELECT team__details.team_name, user.firstName, user.surname FROM team__details, user, team__members WHERE team__details.team_id = team__members.team_id AND team__details.coach_id = {} AND user.id = team__members.athlete_id'.format(current_user.id))
+            for member in query:
+                team_name = member[0]
+                athletes.append(member[1] + " " + member[2])   
+            members[team_name] = athletes   
+            return render_template('coachathletes.html',members = members)           
+        elif current_user.usertype == 3:
+            team_count = db.engine.execute("SELECT COUNT(team_id) FROM team__details")
+            teams = {}
+            count = 1
+            index = 0
+            for amount in team_count:
+                team_count = amount[0]
+            for team in range(team_count):
+                query = db.engine.execute("SELECT user.id, user.firstName, user.surname, user.dob FROM user, team__members WHERE user.id = team__members.athlete_id AND team__members.team_id = {}".format(count))
+                athletes = []
+                for athlete in query:
+                    element = [str(index) +athlete[1] + " " + athlete[2]]
+                    athletes += element
+                    index +=1
+                if len(athletes) > 0:
+                    teams[count] = athletes
+                count +=1
+            team_names = []
+            query = db.engine.execute("SELECT team_name FROM team__details")
+            for team_name in query:
+                team_names.append(team_name)
+            possible_athletes = {}
+            query = db.engine.execute('SELECT team_id, max_age FROM team__details')
+            for team in query:
+                max_age = team[1]
+                eligible_athletes = []
+                athletes = db.engine.execute('SELECT id, firstName, surname, dob FROM user WHERE usertype = {} OR usertype = {}'.format(0,1))
+                if max_age:
+                    for athlete in athletes:
+                        athlete_date = athlete[3].rstrip("00:00:00.0000000")
+                        athlete_age = eligibity_age(athlete_date)
+                        if max_age >= athlete_age:
+                            eligible_athletes += [str(athlete[0])+athlete[1] + " "+ athlete[2]]  
+                else:
+                    for athlete in athletes:
                         eligible_athletes += [str(athlete[0])+athlete[1] + " "+ athlete[2]]  
-            else:
-                for athlete in athletes:
-                    eligible_athletes += [str(athlete[0])+athlete[1] + " "+ athlete[2]]  
-            possible_athletes[team[0]] = eligible_athletes
-        return render_template('adminathletes.html',team_count= team_count,teams=teams, team_names=team_names,possible_athletes=possible_athletes)
-    else:
-        return "You are not authorised to view this page"
+                possible_athletes[team[0]] = eligible_athletes
+            return render_template('adminathletes.html',team_count= team_count,teams=teams, team_names=team_names,possible_athletes=possible_athletes)
+    except:
+        return render_template('error.html',error="You do not have a team to create a teamsheet for, consult the admin")  
 
 @app.route('/deleteathletes/<teammemberid>')#complete
 @login_required
@@ -554,7 +584,6 @@ def create_fees():
         elif not check:
             flash('You must add a numeric number')
         else:
-            print(True)
             query = db.engine.execute("INSERT INTO fees (athlete_id, amount) VALUES ('{}','{}')".format(athlete_id, amount))
             db.session.commit()
         return redirect(url_for('view_fees'))
@@ -581,7 +610,6 @@ def set_fees_date():
         feesid = valid.split("_")[1]
         try:
             paidDate = str(date(int(paidDate[0]),int(paidDate[1]),int(paidDate[2])))
-            print(paidDate)
             if request.method == 'POST':
                 query = db.engine.execute('UPDATE fees SET paid_date = "{}", paid = {} WHERE fees_id= {}'.format(paidDate,1,feesid))
                 db.session.commit()
@@ -689,14 +717,56 @@ def delete_contacts(contactid):
         flash('Was not able to delete this contact successfully', category='error')
     return redirect(url_for('view_contacts'))
 
-@app.route('/teamsheet')#add admin route, athlete route
+@app.route('/teamsheet')#complete
 @login_required
 def view_teamsheet():
-    if current_user.usertype == -1:
+    if current_user.usertype not in [0,1,2,3] or current_user.verified != 1:
         return "You're not authorised to view this page"
     elif current_user.usertype == 0:
-        return render_template('teamsheet.html')
-    elif 0 < current_user.usertype < 3:
+        team_sheets = {}
+        events = []
+        query = db.engine.execute('SELECT team__events.team_sheet_id, events.event_name, team__details.team_name FROM events, team__events, team__details, team__members WHERE events.events_id = team__events.event_id  AND team__details.team_id = team__events.team_id AND team__details.team_id = team__members.team_id AND team__members.athlete_id = {}'.format(current_user.id))
+        for event in query:
+            events.append(event)
+        for event in events:
+            team_sheet_id = event[0]
+            athletes = []
+            query = db.engine.execute('SELECT user.firstName, user.surname, team__sheet.role,user.id FROM team__sheet,user WHERE team__sheet.team_sheet_id = {} AND user.id = team__sheet.athlete_id'.format(team_sheet_id))
+            for athlete in query:
+                athletes.append(athlete)
+            team_sheets[event[0]] = [event[1], event[2],athletes]
+        return render_template('teamsheet.html',team_sheets=team_sheets)
+    elif current_user.usertype == 1:
+        own_team_sheets = {}
+        events = []
+        query = db.engine.execute('SELECT team__events.team_sheet_id, events.event_name, team__details.team_name FROM events, team__events, team__details, team__members WHERE events.events_id = team__events.event_id  AND team__details.team_id = team__events.team_id AND team__details.team_id = team__members.team_id AND team__members.athlete_id = {}'.format(current_user.id))
+        for event in query:
+            events.append(event)
+        for event in events:
+            team_sheet_id = event[0]
+            athletes = []
+            query = db.engine.execute('SELECT user.firstName, user.surname, team__sheet.role,user.id FROM team__sheet,user WHERE team__sheet.team_sheet_id = {} AND user.id = team__sheet.athlete_id'.format(team_sheet_id))
+            for athlete in query:
+                athletes.append(athlete)
+            own_team_sheets[event[0]] = [event[1], event[2],athletes]
+        coach_team_sheets = {}
+        events = []
+        options = {}
+        query = db.engine.execute('SELECT team__events.team_sheet_id, events.event_name FROM events, team__events, team__details WHERE events.events_id = team__events.event_id  AND team__details.team_id = team__events.team_id AND team__details.coach_id = {} ORDER BY team__events.team_sheet_id'.format(current_user.id))
+        for event in query:
+            events.append(event)
+        for event in events:
+            team_sheet_id = event[0]
+            athletes = []
+            query = db.engine.execute('SELECT user.firstName, user.surname, team__sheet.role,user.id FROM team__sheet,user WHERE team__sheet.team_sheet_id = {} AND user.id = team__sheet.athlete_id'.format(team_sheet_id))
+            for athlete in query:
+                athletes.append(athlete)
+            coach_team_sheets[event[0]] = [event[1],athletes]
+        query = db.engine.execute('SELECT user.id, user.firstName, user.surname FROM user, team__events, team__details,team__members WHERE team__events.team_id = team__details.team_id AND team__details.coach_id = {} AND team__members.team_id = team__details.team_id AND user.id = team__members.athlete_id'.format(current_user.id))
+        for athlete in query:
+            options[athlete[0]] = [athlete[1] + " " + athlete[2]]
+        return render_template('coachathleteteamsheet.html',own_team_sheets=own_team_sheets,coach_team_sheets=coach_team_sheets,athletes=options)
+    elif  current_user.usertype == 2:
         team_sheets = {}
         events = []
         options = {}
@@ -714,55 +784,112 @@ def view_teamsheet():
         for athlete in query:
             options[athlete[0]] = [athlete[1] + " " + athlete[2]]
         return render_template('coachteamsheet.html', team_sheets=team_sheets,athletes=options)
-    team_sheets = {}
+    other_team_sheets = {}
     events = []
-    options = {}
-    query = db.engine.execute('SELECT team__events.team_sheet_id, events.event_name,team__details.team_name FROM events, team__events, team__details WHERE events.events_id = team__events.event_id  AND team__details.team_id = team__events.team_id ORDER BY team__events.team_sheet_id')
+    query = db.engine.execute('SELECT team__events.team_sheet_id, events.event_name,team__details.team_name FROM events, team__events, team__details WHERE events.events_id = team__events.event_id  AND team__details.team_id = team__events.team_id AND NOT team__details.coach_id = {} ORDER BY team__events.team_sheet_id'.format(current_user.id))
     for event in query:
         events.append(event)
-        print(event)
     for event in events:
         team_sheet_id = event[0]
         athletes = []
         query = db.engine.execute('SELECT user.firstName, user.surname, team__sheet.role,user.id FROM team__sheet,user WHERE team__sheet.team_sheet_id = {} AND user.id = team__sheet.athlete_id'.format(team_sheet_id))
         for athlete in query:
             athletes.append(athlete)
-        team_sheets[event[0]] = [event[1],event[2],athletes]
-    print(team_sheets)
+        other_team_sheets[event[0]] = [event[1],event[2],athletes]
+    own_team_sheets = {}
+    events = []
+    options = {}
+    query = db.engine.execute('SELECT team__events.team_sheet_id, events.event_name FROM events, team__events, team__details WHERE events.events_id = team__events.event_id  AND team__details.team_id = team__events.team_id AND team__details.coach_id = {} ORDER BY team__events.team_sheet_id'.format(current_user.id))
+    for event in query:
+        events.append(event)
+    for event in events:
+        team_sheet_id = event[0]
+        athletes = []
+        query = db.engine.execute('SELECT user.firstName, user.surname, team__sheet.role,user.id FROM team__sheet,user WHERE team__sheet.team_sheet_id = {} AND user.id = team__sheet.athlete_id'.format(team_sheet_id))
+        for athlete in query:
+            athletes.append(athlete)
+        own_team_sheets[event[0]] = [event[1],athletes]    
     query = db.engine.execute('SELECT user.id, user.firstName, user.surname FROM user, team__events, team__details,team__members WHERE team__events.team_id = team__details.team_id AND team__details.coach_id = {} AND team__members.team_id = team__details.team_id AND user.id = team__members.athlete_id'.format(current_user.id))
     for athlete in query:
         options[athlete[0]] = [athlete[1] + " " + athlete[2]]
-    print(options)
-    return render_template('adminteamsheet.html',team_sheets = team_sheets)
+    return render_template('adminteamsheet.html',own_team_sheets = own_team_sheets,athletes=options,other_team_sheets=other_team_sheets)
 
-@app.route('/createteamsheet',methods=['GET','POST'])#only one team can have 1 team sheet at 1 competeition, try and except, add admin route, fix this
+@app.route('/createteamsheet',methods=['GET','POST'])#complete
 @login_required
 def create_teamsheet():
-    if current_user.usertype not in [1,2,3] or current_user.verified != 1:
-        return render_template('error.html',error="You are not authorised to view this page")   
-    sizes = {0:"X Small (5-14)",1:"Small (15-22)",2:"Medium (23-32)",3:"Large (33-38)"}
-    max_sizes = {0:14,1:22,2:32,3:38}
-    query = db.engine.execute('SELECT * FROM Events')
-    events = {}
-    for event in query:
-        event_start_date = event[2].split(" ")[0]
-        event_start_date = event_start_date.split("-")
-        event_start_date = date(int(event_start_date[0]),int(event_start_date[1]),int(event_start_date[2]))
-        if event_start_date > date.today():
-            events[event[0]] = [event[1],event[2].split(" ")[0],event[3].split(" ")[0]]
-    existing_sheets = {}
-    query = db.engine.execute('SELECT team__events.team_sheet_id, events.event_name, team__events.size FROM team__details, events, team__events WHERE team__details.team_id = team__events.team_id AND events.events_id = team__events.event_id AND team__details.coach_id = {}'.format(current_user.id))
-    for team in query:
-        existing_sheets[team[0]] = [team[1],sizes[team[2]]]
-    query = db.engine.execute('SELECT team_id, team_name FROM team__details WHERE coach_id = {}'.format(current_user.id))
-    for team in query:
-        team_name =team[1]
-    if current_user.usertype == 1:
-        return render_template('createteamsheet.html', events = events, team = team_name,sizes=sizes, team_sheets=existing_sheets, count=0)
-    elif current_user.usertype == 2:
-        return render_template('createteamsheet.html', events = events, team = team_name,sizes=sizes, team_sheets=existing_sheets, count=0)
-    elif current_user.usertype == 3:
-        return redirect(url_for('view_teamsheet')) 
+    try:
+        if current_user.usertype not in [1,2,3] or current_user.verified != 1:
+            return render_template('error.html',error="You are not authorised to view this page")   
+        sizes = {0:"X Small (5-14)",1:"Small (15-22)",2:"Medium (23-32)",3:"Large (33-38)"}
+        query = db.engine.execute('SELECT * FROM Events')
+        events = {}
+        for event in query:
+            event_start_date = event[2].split(" ")[0]
+            event_start_date = event_start_date.split("-")
+            event_start_date = date(int(event_start_date[0]),int(event_start_date[1]),int(event_start_date[2]))
+            if event_start_date > date.today():
+                events[event[0]] = [event[1],event[2].split(" ")[0],event[3].split(" ")[0]]
+        existing_sheets = {}
+        query = db.engine.execute('SELECT team__events.team_sheet_id, events.event_name, team__events.size FROM team__details, events, team__events WHERE team__details.team_id = team__events.team_id AND events.events_id = team__events.event_id AND team__details.coach_id = {}'.format(current_user.id))
+        for team in query:
+            existing_sheets[team[0]] = [team[1],sizes[team[2]]]
+        query = db.engine.execute('SELECT team_id, team_name FROM team__details WHERE coach_id = {}'.format(current_user.id))
+        for team in query:
+            team_name =team[1]
+            team_id = team[0]
+        if current_user.usertype == 1:
+            if request.method == 'POST':
+                try:
+                    event_id = request.form.get('event')
+                    size= request.form.get('size')
+                    query = db.engine.execute('SELECT COUNT(team_sheet_id) FROM team__events WHERE event_id = {} AND team_id = {}'.format(event_id,team_id))
+                    for num in query:
+                        count = num[0]
+                    if count > 0:
+                        flash('This team is already competing at this event',category='error')
+                    else:
+                        query = db.engine.execute("INSERT INTO team__events (event_id, team_id, size) VALUES ('{}','{}','{}')".format(event_id,team_id,size))
+                        db.session.commit()
+                        return redirect(url_for('create_teamsheet'))
+                except:
+                    flash('There was an error when creating this team sheet',category='error')
+            return render_template('createteamsheet.html', events = events, team = team_name,sizes=sizes, team_sheets=existing_sheets, count=0)
+        elif current_user.usertype == 2:
+            if request.method == 'POST':
+                try:
+                    event_id = request.form.get('event')
+                    size= request.form.get('size')
+                    query = db.engine.execute('SELECT COUNT(team_sheet_id) FROM team__events WHERE event_id = {} AND team_id = {}'.format(event_id,team_id))
+                    for num in query:
+                        count = num[0]
+                    if count > 0:
+                        flash('This team is already competing at this event',category='error')
+                    else:
+                        query = db.engine.execute("INSERT INTO team__events (event_id, team_id, size) VALUES ('{}','{}','{}')".format(event_id,team_id,size))
+                        db.session.commit()
+                        return redirect(url_for('create_teamsheet'))
+                except:
+                    flash('There was an error when creating this team sheet',category='error')
+            return render_template('createteamsheet.html', events = events, team = team_name,sizes=sizes, team_sheets=existing_sheets, count=0)
+        elif current_user.usertype == 3:
+            if request.method == 'POST':
+                try:
+                    event_id = request.form.get('event')
+                    size= request.form.get('size')
+                    query = db.engine.execute('SELECT COUNT(team_sheet_id) FROM team__events WHERE event_id = {} AND team_id = {}'.format(event_id,team_id))
+                    for num in query:
+                        count = num[0]
+                    if count > 0:
+                        flash('This team is already competing at this event',category='error')
+                    else:
+                        query = db.engine.execute("INSERT INTO team__events (event_id, team_id, size) VALUES ('{}','{}','{}')".format(event_id,team_id,size))
+                        db.session.commit()
+                        return redirect(url_for('create_teamsheet'))
+                except:
+                    flash('There was an error when creating this team sheet',category='error')        
+            return render_template('admincreateteamsheet.html', events = events, team = team_name,sizes=sizes, team_sheets=existing_sheets, count=0)
+    except:
+        return render_template('error.html',error="You do not have a team to create a teamsheet for, consult the admin")  
 
 @app.route('/deleteteamsheet/<teamsheetid>')#complete
 @login_required
