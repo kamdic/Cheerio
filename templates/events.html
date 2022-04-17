@@ -32,7 +32,6 @@
 		      <a class="nav_item nav-link" id="fees" href="/fees">Fees</a>
           <a class="nav_item nav-link" id="fees" href="/athletes">Athletes</a>
           <a class="nav_item nav-link" id="fees" href="/events">Events</a>
-          <a class="nav_item nav-link" id="fees" href="/training">Training</a>
           <a class="nav_item nav-link" id="viewteamsheet" href="/teamsheet">View Teamsheets</a>
           {% if current_user.usertype > 0%}
             <a class="nav_item nav-link" id="createteamsheet" href="/createteamsheet">Create Teamsheets</a>
@@ -81,69 +80,13 @@
               editable: true,
               eventLimit: true, // allow "more" link when too many events
               
-              
-
-
-
-              
-
-              
-              
-            
-                // events: [
-                //   { // this object will be "parsed" into an Event Object
-                //     title: 'The Title', // a property!
-                //     start: '2018-09-01', // a property!
-                //     end: '2018-09-02' // a property! ** see important note below about 'end' **
-                //   }
-                // ],
-              
-              select: function(start, end) {
-                var title = prompt("Event Content:");
-                var eventData;
-                if (title) {
-                  eventData = {
-                    title: title,
-                    start: start,
-                    end: end,
-                    
-                  
-                  };
-                  fetch('/createevents',{
-                    method : "POST",
-                    body: JSON.stringify({start: eventData.start._d, end:eventData.end._d, title : eventData.title }),
-                    headers: new Headers ({
-                      "content-type": "application/json"
-                      })
-                    })
-                    
-                    
-                  $("#calendar").fullCalendar("renderEvent", eventData, true); // stick? = true
-                }
-                $("#calendar").fullCalendar("unselect");
-              },
 
               eventRender: function(event, element) {
                 element
                   .find(".fc-content")
-                  .prepend("<span class='closeBtn material-icons'>&#xe5cd;</span>");
-                element.find(".closeBtn").on("click", function() {
-                  fetch('/deleteevents',{
-                    method : "POST",
-                    body: JSON.stringify({start: event.start._d, end:event.end._d, title : event.title}),
-                    headers: new Headers ({
-                      "content-type": "application/json"
-                      })
-                    })
-                  $("#calendar").fullCalendar("removeEvents", event._id);
-                });  
+                  .prepend("<span class='closeBtn material-icons'>&#xe5cd;</span>");  
               },
 
-              eventClick: function(calEvent) {
-                var title = prompt("Edit Event Content:", calEvent.title);
-                calEvent.title = title;
-                $("#calendar").fullCalendar("updateEvent", calEvent);
-              },    
             });
                   {% for event in events %}
                     var myEvent = {

@@ -130,10 +130,10 @@
           </a>
           <a
           class="nav-link px-3 sidebar-link"
-          href="{{ url_for('view_training') }}"
+          href="{{ url_for('create_teamsheet') }}"
         >
           <span class="me-2"><i class="bi bi-layout-split"></i></span>
-          <span>Manage Training</span>
+          <span>Manage Team Sheets</span>
           <span class="ms-auto">
           </span>
         </a>
@@ -154,7 +154,7 @@
       <span>Manage Contacts</span>
       <span class="ms-auto">
       </span>
-    </a>            
+    </a>              
             <div class="collapse" id="layouts">
               <ul class="navbar-nav ps-3">
                 <li>
@@ -176,6 +176,50 @@
     <main class="mt-5 pt-3">
       <div class="container-fluid">
         <!-- where to add to white area -->
+        {% for team_sheet in team_sheets%}
+        <h3>{{team_sheets[team_sheet][0]}}- {{team_sheets[team_sheet][1]}}</h3>
+        <form method = 'POST' action="{{ url_for('add_athletes', teamsheetid=team_sheet)}} ">
+        <table class="table table-striped">
+          <thead>
+            <tr>
+              <th scope="col">Athlete Name</th>
+              <th scope="col"> Role</th>
+              <th scope="col"></th>
+            </tr>
+          </thead>
+          <tbody>
+            {%for athlete in team_sheets[team_sheet][2]%}
+            <tr>
+              <td> {{athlete[0] + " " + athlete[1]}}</td>
+              <td> {{athlete[2]}}</td>
+              <td><a type="Submit" class="btn btn-danger btn-sm" href= "{{url_for('delete_from_teamsheet', teamsheetid=team_sheet, athleteid=athlete[3]   )}}">Delete</a></td>
+            </tr>
+            {% endfor %}
+              <td>
+                <select class="form-select" aria-label="Default select example" name="athlete", id= "athlete">
+                  <option selected>Select an athlete: </option>
+                  {% for athlete in athletes%}
+                    <option value="{{athlete}}">{{athletes[athlete][0]}}</option>
+                  {% endfor %}
+                  </select>
+              </td>
+              </select>
+              <td>
+                <div class= "form-group">
+                  <input 
+                  type="text"
+                  class="form-control" 
+                  id="role" 
+                  name="role"
+                  placeholder="Enter athlete role"
+                  />               
+              </td>
+              <td><input class="btn btn-success" type="submit" value="Submit"></td>
+              </tr>  
+          </tbody>
+        </table>
+        </form>
+        {% endfor %}
       </div>
     </main>
   </body>

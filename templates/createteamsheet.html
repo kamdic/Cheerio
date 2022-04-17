@@ -31,11 +31,12 @@
           <a class="nav_item nav-link" id="teams" href="/teams">Teams</a>
 		      <a class="nav_item nav-link" id="events" href="/events">Events</a>
 		      <a class="nav_item nav-link" id="fees" href="/fees">Fees</a>
-          <a class="nav_item nav-link" id="athletes" href="/athletes">Athletes</a>
-          <a class="nav_item nav-link" id="events" href="/events">Events</a>
-          <a class="nav_item nav-link" id="training" href="/training">Training</a>
+          <a class="nav_item nav-link" id="fees" href="/athletes">Athletes</a>
+          <a class="nav_item nav-link" id="fees" href="/events">Events</a>
           <a class="nav_item nav-link" id="viewteamsheet" href="/teamsheet">View Teamsheets</a>
-          <a class="nav_item nav-link" id="createteamsheet" href="/createteamsheet">Create Teamsheets</a>
+          {% if current_user.usertype > 0%}
+            <a class="nav_item nav-link" id="createteamsheet" href="/createteamsheet">Create Teamsheets</a>
+          {% endif %}
           <a class="nav_item nav-link" id="fees" href="/contacts">Contacts</a>
         </div>
       </div>

@@ -1,8 +1,5 @@
-from array import *
-from gzip import READ
-import json
 import re
-from flask import Flask, render_template, request, redirect, flash, url_for, jsonify, make_response
+from flask import Flask, render_template, request, redirect, flash, url_for
 from flask_sqlalchemy import SQLAlchemy
 from datetime import date, datetime
 from flask_login import UserMixin, login_user, login_required, logout_user, LoginManager, current_user
@@ -34,7 +31,7 @@ class User(db.Model, UserMixin):
     password = db.Column(db.String(255), nullable = False)
     usertype = db.Column(db.Integer, default = -1)
     verified = db.Column(db.Integer, default = 0)
-    #usertype = {0: athlete, 1: athlete/coach, 2: coach, 3: admin/coach. 4: admin}
+    #usertype = {0:athlete, 1:athlete/coach, 2:coach, 3:admin}
 
 class Fees(db.Model):
     fees_id = db.Column(db.Integer, primary_key= True)
@@ -64,13 +61,6 @@ class Team_Sheet(db.Model): #Will add each athlete to the teamsheet from team me
     athlete_id= db.Column(db.Integer, primary_key= True)
     role= db.Column(db.String(10), default = 'Tumbler')
     
-class Training(db.Model):
-    training_id= db.Column(db.Integer, primary_key=True)
-    team_id= db.Column(db.Integer)
-    athlete_id= db.Column(db.Integer)
-    start_date_time= db.Column(db.DateTime, nullable = False)
-    end_date_time = db.Column(db.DateTime, nullable = False)
-    attendance= db.Column(db.Boolean, nullable = False)
 
 class Contacts(db.Model):
     contacts_id= db.Column(db.Integer, primary_key=True)
@@ -111,19 +101,19 @@ def password(passwd):
     else:
         return False
 
-@app.errorhandler(404)
+@app.errorhandler(404)#complete
 def not_found(error):
     return render_template('error.html', error= error)
 
-@app.errorhandler(500)
+@app.errorhandler(500)#complete
 def server_error(error):
     return render_template('error.html', error=error)
 
-@app.route('/')
+@app.route('/')#complete
 def index():
     return redirect(url_for('login'))
 
-@app.route('/signup',  methods=['GET', 'POST']) #add validation and remove school URN
+@app.route('/signup',  methods=['GET', 'POST']) #complete
 def signup():
     if request.method == 'POST':
         email = request.form.get('email')
@@ -151,10 +141,9 @@ def signup():
             db.session.commit()
             flash('Your account has been created. Wait for the admin user to verify it.', category='success')
             return redirect(url_for('login'))
-        
     return render_template('signup.html')
 
-@app.route('/login', methods=['GET', 'POST'])
+@app.route('/login', methods=['GET', 'POST'])#complete
 def login():
     if request.method == "POST":
         email = request.form.get('email')
@@ -164,10 +153,12 @@ def login():
             if check_password_hash(user.password, password):
                 if user.verified == 1:
                     login_user(user)
-                    if user.usertype < 4:
+                    if -1 < user.usertype < 3:
                         return redirect(url_for('view_teams',user=current_user))
-                    else:
+                    elif user.usertype == 3:
                         return redirect(url_for('admin'))
+                    else:
+                        return render_template('error.html',error="You are not authorised to view this page")
                 else:
                     flash('Your details have yet to be verified by the Admin', category='error')
             else:
@@ -176,15 +167,17 @@ def login():
             flash('There is no existing user with this email', category='error')
     return render_template('login.html')
 
-@app.route('/logout')
+@app.route('/logout')#complete
 @login_required
 def logout():
     logout_user()
     return redirect(url_for('login'))
 
-@app.route('/admin')#check user access levels
+@app.route('/admin')#complete
 @login_required
 def admin():
+    if current_user.usertype !=3:
+        return render_template('error.html',error="You are not authorised to view this page")
     query = db.engine.execute('SELECT id, firstName, surname, dob, start_date FROM user ORDER BY start_date DESC')
     birthdays = {}
     anniversaries = {} 
@@ -199,11 +192,11 @@ def admin():
             anniversaries[user[0]] = [user[1] + " " + user[2], year]
     return render_template('admin.html',birthdays=birthdays, anniversaries= anniversaries)
 
-@app.route('/users', methods= ['GET', 'POST'])#user levels, 
+@app.route('/users', methods= ['GET', 'POST'])#complete
 @login_required
 def verify_users():
     if current_user.usertype < 3:
-        return render_template('error.html')
+        return render_template('error.html',error="You are not authorised to view this page")
     unverified_users = {}
     query = db.engine.execute('SELECT id, firstName, surname, email FROM user WHERE verified < {}'.format(1))
     for user in query:
@@ -235,12 +228,14 @@ def verify_users():
     for user in query:
         if current_user.id != user[0]:
             verified_users[user[0]] = [user[1], user[2], user[3],user[4]]
-    usertypes = {0: 'Athlete', 1: 'Coach', 2: 'Athlete/Coach', 3:'Admin', 4:'Admin/Coach',5:'Admin/Coach/Athlete'}
+    usertypes = {0: 'Athlete', 1: 'Athlete/Coach', 2: 'Coach', 3:'Admin'}
     return render_template('users.html', unverified_users=unverified_users, verified_users= verified_users, usertypes = usertypes)
 
-@app.route('/setusers', methods= ['GET', 'POST'])
+@app.route('/setusers', methods= ['GET', 'POST'])#complete
 @login_required
 def set_users():
+    if current_user.usertype < 3:
+        return render_template('error.html',error="You are not authorised to view this page")
     verify_users()
     valid = False
     for item in request.values:
@@ -264,16 +259,36 @@ def set_users():
                 return redirect(url_for('verify_users'))
     return redirect(url_for('verify_users'))
 
-@app.route('/deleteuser/<userid>')
+@app.route('/deleteuser/<userid>')#complete
 @login_required
 def delete_users(userid):
+    if current_user.usertype != 3:
+        return render_template('error.html',error="You are not authorised to view this page")    
     verify_users()
-    query = db.engine.execute('DELETE FROM user WHERE id = {}'.format(userid))
-    query = db.engine.execute('DELETE FROM team__details WHERE coach_id = {}'.format(userid))
-    db.session.commit()
+    try:
+        query = db.engine.execute('SELECT usertype FROM user WHERE id = {}'.format(userid))
+        for info in query:
+            usertype = info[0]
+        query = db.engine.execute('DELETE FROM contacts WHERE athlete_id = {}'.format(userid))
+        query = db.engine.execute('DELETE FROM fees WHERE athlete_id = {}'.format(userid))
+        if usertype == 0:
+            query = db.engine.execute('DELETE FROM team__members WHERE athlete_id = {}'.format(userid))
+        elif usertype == 1:
+            query = db.engine.execute('DELETE FROM team__members WHERE athlete_id = {}'.format(userid))
+            query = db.engine.execute('DELETE FROM team__details WHERE coach_id = {}'.format(userid))
+            query = db.engine.execute('DELETE FROM team__events,team__sheet,team__members WHERE team__details.coach_id = {} AND team__events.team_sheet_id = team__sheet.team_sheet_id AND team__members.team_id = team__details.team_id'.format(userid))        
+        elif usertype == 2:
+            query = db.engine.execute('DELETE FROM team__details WHERE coach_id = {}'.format(userid))
+        elif usertype == 3:
+            query = db.engine.execute('DELETE FROM team__details WHERE coach_id = {}'.format(userid))
+            query = db.engine.execute('DELETE FROM team__events,team__sheet,team__members WHERE team__details.coach_id = {} AND team__events.team_sheet_id = team__sheet.team_sheet_id AND team__members.team_id = team__details.team_id'.format(userid))
+        query = db.engine.execute('DELETE FROM user WHERE id = {}'.format(userid))
+        db.session.commit()
+    except:
+        flash('There was an error when deleting this user',category='error')
     return redirect(url_for('verify_users'))
 
-@app.route('/teams', methods=['GET','POST'])
+@app.route('/teams', methods=['GET','POST'])#complete
 @login_required
 def view_teams():
     team_names = {}
@@ -284,8 +299,10 @@ def view_teams():
     query = db.engine.execute('SELECT user.id, user.firstName, user.surname FROM user WHERE user.usertype > {}'.format(0))
     coaches = {}
     for coach in query:
-        coaches[coach[0]] = [coach[1]+ " "+ coach[2]]   
-    if -1 < current_user.usertype < 4:
+        coaches[coach[0]] = [coach[1]+ " "+ coach[2]]
+    if current_user.usertype == -1 or current_user.verified == 0:
+        return render_template('error.html',error="You are not authorised to view this page")
+    if -1 < current_user.usertype < 3:
         return render_template('teams.html', team_names = team_names, coaches = coaches)
     query = db.engine.execute("SELECT team__details.team_id, team__details.max_age, team__details.team_name, user.firstName, user.surname FROM team__details, user WHERE user.id == team__details.coach_id")
     for team in query:
@@ -293,21 +310,27 @@ def view_teams():
     db.session.commit()
     return render_template('adminteams.html', team_names = team_names,coaches = coaches)
 
-@app.route('/deleteteams/<teamid>')
+@app.route('/deleteteams/<teamid>')#complete
 @login_required
 def delete_teams(teamid):
+    if current_user.usertype != 3 or current_user.verified != 1:
+        return render_template('error.html',error="You are not authorised to view this page")
     try:
-        Team_Details.query.filter(Team_Details.team_id == teamid).delete()
+        query = db.engine.execute('DELETE FROM team__details WHERE team_id = {}'.format(teamid))
+        query = db.engine.execute('DELETE FROM team__events,team__sheet WHERE team__events.team_id = {} AND team__events.team_sheet_id = team__sheet.team_sheet_id'.format(teamid))
+        query = db.engine.execute('DELETE FROM team__members WHERE team_id = {}'.format(teamid))
         db.session.commit()
         flash('You have successfully deleted a team', category = 'success')
     except:
-        print("Not any teams in the database")
+        flash('Not able to delete this team',category='error')
     return redirect(url_for('view_teams'))
 
 
-@app.route('/createteams', methods=['GET','POST'])
+@app.route('/createteams', methods=['GET','POST'])#complete
 @login_required
 def create_teams():
+    if current_user.usertype != 3 or current_user.verified != 1:
+        return render_template('error.html',error="You are not authorised to view this page")
     if request.method == 'POST':
         query = db.engine.execute('SELECT user.id, user.firstName, user.surname FROM user WHERE user.usertype > {}'.format(0))
         coaches = {}
@@ -334,31 +357,18 @@ def create_teams():
         return redirect(url_for('view_teams'))
     return render_template('adminteams.html', coaches = coaches)
 
-@app.route('/athletes')
+@app.route('/athletes')#athlete, athlete/coach and coach route 
 @login_required
 def view_athletes():
-    if -1 < current_user.usertype < 3:
-        query = db.engine.execute('SELECT team__details.team_id FROM team__members,team__details WHERE team__members.athlete_id = {} AND team__details.team_id = team__members.team_id OR team__details.coach_id = {}'.format(current_user.id,current_user.id))
-        teams = []
-        for team in query:
-            teams.append(team[0])
-        teams = set(teams)
-        print(teams)
-        team_members = {}
-        for team in teams:
-            athletes = []
-            team_details = db.engine.execute('SELECT team__details.team_name, user.firstName, user.surname FROM team__details, user WHERE team__details.team_id = {}'.format(team))
-            query = db.engine.execute('SELECT user.firstName, user.surname FROM user, team__details WHERE team__details.team_id = {}'.format(team))
-            for athlete in query:
-                print(athlete)
-                athletes.append(athlete[0] + " " + athlete[1])
-            for team_detail in team_details:
-                athletes.insert(0,team_detail[1] + " " + team_detail[2])
-                name = team_detail[0]
-            team_members[name] = athletes
-        print(team_members)
+    if current_user.usertype not in [0,1,2,3] or current_user.verified != 1:
+        return render_template('error.html',error="You are not authorised to view this page")
+    elif  current_user.usertype == 0:
         return render_template('athletes.html')
-    elif current_user.usertype > 2:
+    elif  current_user.usertype == 1:
+        return render_template('athletes.html')
+    elif  current_user.usertype == 2:
+        return render_template('athletes.html')           
+    elif current_user.usertype == 3:
         team_count = db.engine.execute("SELECT COUNT(team_id) FROM team__details")
         teams = {}
         count = 1
@@ -399,24 +409,31 @@ def view_athletes():
     else:
         return "You are not authorised to view this page"
 
-@app.route('/deleteathletes/<teammemberid>')
+@app.route('/deleteathletes/<teammemberid>')#complete
 @login_required
 def delete_athletes(teammemberid):
-    ids = []
-    query = db.engine.execute('SELECT * FROM team__members ORDER BY team_id ASC')
-    for id in query:
-        ids.append(id)
-    teammemberid = re.sub("[^0-9]", "", teammemberid)
-    team_id = ids[int(teammemberid)][0]
-    athlete_id = ids[int(teammemberid)][1]
-    query = db.engine.execute('DELETE FROM team__members WHERE (team_id = {} AND athlete_id = {})'.format(team_id, athlete_id))
-    flash('You have successfully deleted a team member', category = 'success')
-    db.session.commit()    
+    if current_user.usertype != 3 or current_user.verified != 1:
+        return render_template('error.html',error="You are not authorised to view this page")
+    try:
+        ids = []
+        query = db.engine.execute('SELECT * FROM team__members ORDER BY team_id ASC')
+        for id in query:
+            ids.append(id)
+        teammemberid = re.sub("[^0-9]", "", teammemberid)
+        team_id = ids[int(teammemberid)][0]
+        athlete_id = ids[int(teammemberid)][1]
+        query = db.engine.execute('DELETE FROM team__members WHERE (team_id = {} AND athlete_id = {})'.format(team_id, athlete_id))
+        flash('You have successfully deleted a team member', category = 'success')
+        db.session.commit() 
+    except:
+        flash('There was a problem deleting this athlete from the team', category='error')   
     return redirect(url_for('view_athletes'))
 
-@app.route('/createathletes', methods=['GET','POST'])
+@app.route('/createathletes', methods=['GET','POST'])#complete
 @login_required
 def create_athletes():
+    if current_user.usertype != 3 or current_user.verified != 1:
+        return render_template('error.html',error="You are not authorised to view this page")    
     if request.method == 'POST':
         view_athletes()
         teammemberid = request.form.get('athlete').split('_')
@@ -431,59 +448,78 @@ def create_athletes():
         return redirect(url_for('view_athletes'))
     return render_template('adminathletes.html')
     
-@app.route('/events')
+@app.route('/events')#complete
 @login_required
 def view_events():
     cal_events = {}
     query = db.engine.execute("SELECT events_id, event_name, event_start_date, event_end_date FROM Events")
     for event in query:
-        cal_events[event[0]] = [event[1],event[2],event[3]]      
+        cal_events[event[0]] = [event[1],event[2],event[3]]    
+    if current_user.usertype not in [0,1,2,3] or current_user.verified != 1:
+        return render_template('error.html',error="You are not authorised to view this page")  
     if -1 < current_user.usertype < 3:
         return render_template('events.html', events=cal_events)
     elif current_user.usertype >2: 
         return render_template('adminevents.html', events=cal_events)
 
-@app.route('/createevents', methods= ['GET','POST'])
+@app.route('/createevents', methods= ['GET','POST'])#complete
 @login_required
 def create_events():
-    req = request.get_json()
-    print(req)
-    name = req['title']
-    start = req['start']
-    end = req['end']
-    start = start.strip("Z").split("T")
-    end = end.strip("Z").split("T")
-    start = (" ").join(start)
-    end = (" ").join(end)
-    query = db.engine.execute("INSERT INTO Events (event_name, event_start_date, event_end_date) VALUES ('{}','{}','{}')".format(name,start,end))
-    db.session.commit()
+    if current_user.usertype != 3 or current_user.verified != 1:
+        return render_template('error.html',error="You are not authorised to view this page")
+    try:  
+        req = request.get_json()
+        name = req['title']
+        start = req['start']
+        end = req['end']
+        start = start.strip("Z").split("T")
+        end = end.strip("Z").split("T")
+        start = (" ").join(start)
+        end = (" ").join(end)
+        query = db.engine.execute("SELECT COUNT(events_id) FROM Events WHERE event_name = '{}' AND event_start_date = '{}' AND event_end_date = '{}'".format(name,start,end))
+        for num in query:
+            existing = num[0]
+        if existing > 0:
+            flash('There is already an existing event with this name, at the same time', category='error')
+        else:
+            query = db.engine.execute("INSERT INTO Events (event_name, event_start_date, event_end_date) VALUES ('{}','{}','{}')".format(name,start,end))
+            db.session.commit()
+    except:
+        flash('Was not able to add this event', category='error')
     return redirect(url_for('view_events'))
 
-@app.route('/deleteevents', methods= ['GET','POST'])
+@app.route('/deleteevents', methods= ['GET','POST'])#complete
 @login_required
 def delete_events():
-    req = request.get_json()
-    name = req['title']
-    start = req['start']
-    end = req['end']
-    start = start.strip("Z").split("T")
-    end = end.strip("Z").split("T")
-    start = str((" ").join(start))
-    end = str((" ").join(end))    
-    query = db.engine.execute('SELECT * FROM Events')
-    events = []
-    for event in query:
-        if event[2] == start and event[3] == end and event[1] == name:
-            events.append(event[0])
-    if len(events) == 1:
-        query = db.engine.execute('DELETE FROM Events WHERE events_id = {}'.format(events[0]))
-        db.session.commit()
+    if current_user.usertype != 3 or current_user.verified != 1:
+        return render_template('error.html',error="You are not authorised to view this page")
+    try:  
+        req = request.get_json()
+        name = req['title']
+        start = req['start']
+        end = req['end']
+        start = start.strip("Z").split("T")
+        end = end.strip("Z").split("T")
+        start = str((" ").join(start))
+        end = str((" ").join(end))    
+        query = db.engine.execute('SELECT * FROM Events')
+        events = []
+        for event in query:
+            if event[2] == start and event[3] == end and event[1] == name:
+                events.append(event[0])
+        if len(events) == 1:
+            query = db.engine.execute('DELETE FROM Events WHERE events_id = {}'.format(events[0]))
+            db.session.commit()
+    except:
+        flash('Was not able to delete this event', category='error')
     return redirect(url_for('view_events'))
 
-@app.route('/fees')
+@app.route('/fees')#complete
 @login_required
 def view_fees():
-    if -1< current_user.usertype < 4:
+    if current_user.usertype not in [0,1,2,3] or current_user.verified != 1:
+        return render_template('error.html',error="You are not authorised to view this page")  
+    if -1< current_user.usertype < 3:
         query = db.engine.execute('SELECT fees.fees_id, fees.amount, fees.paid_date, fees.paid FROM fees WHERE fees.athlete_id = {} ORDER BY fees.paid_date DESC'.format(current_user.id))
         fees={}
         for fee in query:
@@ -492,19 +528,19 @@ def view_fees():
             else:
                 fees[fee[0]] = [fee[1],fee[2],"Yes",fee[3]]
         return render_template('fees.html', fees=fees)
-    elif current_user.usertype > 3:
+    elif current_user.usertype == 3:
         users = db.engine.execute('SELECT id, firstName, surname FROM user')
         athletes = {}
         for athlete in users:
             athletes[athlete[0]] = [athlete[1]+ " "+ athlete[2]]        
         query = db.engine.execute('SELECT fees.fees_id, user.firstName, user.surname, fees.amount, fees.paid_date, fees.paid FROM fees, user WHERE user.id = fees.athlete_id ORDER BY fees.paid_date DESC')
         return render_template('adminfees.html', fees=query, athletes=athletes)
-    else:
-        return 'You are not verified'
 
-@app.route('/createfees', methods= ['GET','POST'])
+@app.route('/createfees', methods= ['GET','POST'])#complete
 @login_required
 def create_fees():
+    if current_user.usertype != 3 or current_user.verified != 1:
+        return render_template('error.html',error="You are not authorised to view this page")  
     if request.method == "POST":
         users = db.engine.execute('SELECT id, firstName, surname FROM user')
         athletes = {}
@@ -524,9 +560,11 @@ def create_fees():
         return redirect(url_for('view_fees'))
     return render_template('adminfees.html', athletes=athletes)
 
-@app.route('/setfees', methods=["GET","POST"])
+@app.route('/setfees', methods=["GET","POST"])#complete
 @login_required
 def set_fees_date():
+    if current_user.usertype != 3 or current_user.verified != 1:
+        return render_template('error.html',error="You are not authorised to view this page")  
     view_fees()
     valid = False
     for item in request.values:
@@ -553,48 +591,23 @@ def set_fees_date():
         return redirect(url_for('view_fees'))
     return redirect(url_for('view_fees'))
 
-@app.route('/deletefees/<feeid>')
+@app.route('/deletefees/<feeid>')#complete
 @login_required
 def delete_fees(feeid):
-    if current_user.usertype < 3:
-        return "You're not authorised to view this page"
-    else:
+    if current_user.usertype != 3 or current_user.verified != 1:
+        return render_template('error.html',error="You are not authorised to view this page")  
+    try:
         query = db.engine.execute('DELETE FROM fees WHERE fees_id = {}'.format(feeid))
-        db.session.commit()        
-        return redirect(url_for('view_fees'))
+        db.session.commit()
+    except:        
+        flash('Was not able to delete this fee', category='error')
+    return redirect(url_for('view_fees'))
 
-
-@app.route('/training')
-@login_required
-def view_training():
-    if -1 < current_user.usertype < 4:
-        view_events()
-        return render_template('training.html')
-    elif current_user.usertype >3:
-        return render_template('admintraining.html')
-    else:
-        return 'You are not verified to view this page'
- 
-@app.route('/createtraining')
-@login_required
-def create_training():
-    if -1 < current_user.usertype < 4:
-        return render_template('training.html')
-    elif current_user.usertype >3:
-        return render_template('admintraining.html')
-    else:
-        return 'You are not verified to view this page'
-
-@app.route('/deletetraining/<trainingid>')
-@login_required
-def delete_training(trainingid):
-    return 'This is where the admin manages all training sessions'
-
-@app.route('/contacts')
+@app.route('/contacts')#complete
 @login_required
 def view_contacts():
-    if current_user.usertype == -1:
-        return "You're not authorised to view this page"
+    if current_user.usertype not in [0,1,2,3] or current_user.verified != 1:
+        return render_template('error.html',error="You are not authorised to view this page")  
     elif current_user.usertype == 0:
         query = db.engine.execute('SELECT firstName, surname, number FROM contacts WHERE contacts.athlete_id == {}'.format(current_user.id))
         return render_template('contacts.html', contacts=query)
@@ -621,51 +634,62 @@ def view_contacts():
         for name in query:
             name = name[0]
         return render_template('coachcontacts.html', athletes=athletes, name=name)
-    elif current_user.usertype > 3:
-        query = db.engine.execute('SELECT id, firstName, surname FROM user WHERE usertype == {}'.format(0))
+    elif current_user.usertype == 3:
+        query = db.engine.execute('SELECT id, firstName, surname FROM user WHERE usertype == {} OR usertype == {}'.format(0,1))
         athletes = {}
         for athlete in query:
-            athletes[athlete[0]] = [athlete[1]+ " "+ athlete[2]]        
+            athletes[athlete[0]] = [athlete[1]+ " "+ athlete[2]]       
         query = db.engine.execute('SELECT contacts.contacts_id, user.firstName, user.surname, contacts.firstName, contacts.surname, contacts.number FROM contacts, user WHERE user.id = contacts.athlete_id')
         return render_template('admincontacts.html', contacts=query, athletes=athletes)
-    else:
-        return 'You are not authorised to view this page'
 
-@app.route('/createcontacts/', methods= ['GET','POST'])
+@app.route('/createcontacts/', methods= ['GET','POST'])#complete
 @login_required
 def create_contacts():
+    if current_user.usertype != 3 or current_user.verified != 1:
+        return render_template('error.html',error="You are not authorised to view this page")    
     if request.method == 'POST':
-        query = db.engine.execute('SELECT id, firstName, surname FROM user')
-        athletes = {}
-        for athlete in query:
-            athletes[athlete[0]] = [athlete[1]+ " "+ athlete[2]]
-        athlete_id = request.form.get('athlete')
-        firstName = request.form.get('firstName')
-        surname = request.form.get('surname')
-        number = request.form.get('number')
-        if athlete_id == 'Select an athlete:':
-            flash('You must select an athlete', category='error')
-        elif firstName.strip()== "":
-            flash('You cannot leave the contact name empty', category='error')
-        elif surname.strip()== "":
-            flash('You cannot leave the contact name empty', category='error') 
-        elif number.strip()== "":
-            flash('You cannot leave the contact number empty', category='error')
-        else:
-            query = db.engine.execute("INSERT INTO contacts (athlete_id, firstName, surname, number) VALUES ('{}','{}', '{}', '{}')".format(athlete_id, firstName,surname,number))
-            db.session.commit()                  
+        try:
+            athlete_id = request.form.get('athlete')
+            firstName = request.form.get('firstName')
+            surname = request.form.get('surname')
+            number = request.form.get('number')
+            query = db.engine.execute("SELECT COUNT(contacts_id) FROM Contacts WHERE athlete_id = '{}' AND firstName = '{}' AND surname  = '{}' AND number='{}'".format(athlete_id, firstName, surname, number))
+            for num in query:
+                existing = num[0]
+            if existing > 0:
+                flash('This contact has already been made for this athlete', category='error')
+            elif athlete_id == 'Select an athlete:':
+                flash('You must select an athlete', category='error')
+            elif firstName.strip()== "":
+                flash('You cannot leave the contact name empty', category='error')
+            elif surname.strip()== "":
+                flash('You cannot leave the contact name empty', category='error') 
+            elif number.strip()== "":
+                flash('You cannot leave the contact number empty', category='error')
+            elif not number.isnumeric() :
+                flash('The phone number must be strictly numeric', category='error')
+            else:
+                query = db.engine.execute("INSERT INTO contacts (athlete_id, firstName, surname, number) VALUES ('{}','{}', '{}', '{}')".format(athlete_id, firstName,surname,number))
+                db.session.commit()
+        except:
+            pass                  
         return redirect(url_for('view_contacts'))
-    return render_template('admincontacts.html', athletes=athletes)
-
-@app.route('/deletecontacts/<contactid>')
-@login_required
-def delete_contacts(contactid):
-    query = db.engine.execute('DELETE FROM contacts WHERE contacts_id = {}'.format(contactid))
-    flash('You have successfully deleted a contact', category = 'success')
-    db.session.commit()
     return redirect(url_for('view_contacts'))
 
-@app.route('/teamsheet')
+@app.route('/deletecontacts/<contactid>')#complete
+@login_required
+def delete_contacts(contactid):
+    if current_user.usertype != 3 or current_user.verified != 1:
+        return render_template('error.html',error="You are not authorised to view this page")
+    try:  
+        query = db.engine.execute('DELETE FROM contacts WHERE contacts_id = {}'.format(contactid))
+        flash('You have successfully deleted a contact', category = 'success')
+        db.session.commit()
+    except:
+        flash('Was not able to delete this contact successfully', category='error')
+    return redirect(url_for('view_contacts'))
+
+@app.route('/teamsheet')#add admin route, athlete route
 @login_required
 def view_teamsheet():
     if current_user.usertype == -1:
@@ -690,14 +714,35 @@ def view_teamsheet():
         for athlete in query:
             options[athlete[0]] = [athlete[1] + " " + athlete[2]]
         return render_template('coachteamsheet.html', team_sheets=team_sheets,athletes=options)
-    return render_template('adminteamsheet.html')
+    team_sheets = {}
+    events = []
+    options = {}
+    query = db.engine.execute('SELECT team__events.team_sheet_id, events.event_name,team__details.team_name FROM events, team__events, team__details WHERE events.events_id = team__events.event_id  AND team__details.team_id = team__events.team_id ORDER BY team__events.team_sheet_id')
+    for event in query:
+        events.append(event)
+        print(event)
+    for event in events:
+        team_sheet_id = event[0]
+        athletes = []
+        query = db.engine.execute('SELECT user.firstName, user.surname, team__sheet.role,user.id FROM team__sheet,user WHERE team__sheet.team_sheet_id = {} AND user.id = team__sheet.athlete_id'.format(team_sheet_id))
+        for athlete in query:
+            athletes.append(athlete)
+        team_sheets[event[0]] = [event[1],event[2],athletes]
+    print(team_sheets)
+    query = db.engine.execute('SELECT user.id, user.firstName, user.surname FROM user, team__events, team__details,team__members WHERE team__events.team_id = team__details.team_id AND team__details.coach_id = {} AND team__members.team_id = team__details.team_id AND user.id = team__members.athlete_id'.format(current_user.id))
+    for athlete in query:
+        options[athlete[0]] = [athlete[1] + " " + athlete[2]]
+    print(options)
+    return render_template('adminteamsheet.html',team_sheets = team_sheets)
 
-@app.route('/createteamsheet',methods=['GET','POST'])
+@app.route('/createteamsheet',methods=['GET','POST'])#only one team can have 1 team sheet at 1 competeition, try and except, add admin route, fix this
 @login_required
 def create_teamsheet():
+    if current_user.usertype not in [1,2,3] or current_user.verified != 1:
+        return render_template('error.html',error="You are not authorised to view this page")   
     sizes = {0:"X Small (5-14)",1:"Small (15-22)",2:"Medium (23-32)",3:"Large (33-38)"}
     max_sizes = {0:14,1:22,2:32,3:38}
-    query = db.engine.execute('SELECT * FROM Events') #id, name, start, end
+    query = db.engine.execute('SELECT * FROM Events')
     events = {}
     for event in query:
         event_start_date = event[2].split(" ")[0]
@@ -712,28 +757,59 @@ def create_teamsheet():
     query = db.engine.execute('SELECT team_id, team_name FROM team__details WHERE coach_id = {}'.format(current_user.id))
     for team in query:
         team_name =team[1]
-    return render_template('createteamsheet.html', events = events, team = team_name,sizes=sizes, team_sheets=existing_sheets, count=0)
+    if current_user.usertype == 1:
+        return render_template('createteamsheet.html', events = events, team = team_name,sizes=sizes, team_sheets=existing_sheets, count=0)
+    elif current_user.usertype == 2:
+        return render_template('createteamsheet.html', events = events, team = team_name,sizes=sizes, team_sheets=existing_sheets, count=0)
+    elif current_user.usertype == 3:
+        return redirect(url_for('view_teamsheet')) 
 
-@app.route('/deleteteamsheet/<teamsheetid>')
+@app.route('/deleteteamsheet/<teamsheetid>')#complete
 @login_required
 def delete_teamsheet(teamsheetid):
-    query = db.engine.execute("DELETE FROM team__events WHERE team_sheet_id = {}".format(teamsheetid))
-    query = db.engine.execute("DELETE FROM team__sheet WHERE team_sheet_id = {}".format(teamsheetid))
-    db.session.commit()
+    if current_user.usertype not in [1,2,3] or current_user.verified != 1:
+        return render_template('error.html',error="You are not authorised to view this page")
+    try:
+        query = db.engine.execute("DELETE FROM team__events WHERE team_sheet_id = {}".format(teamsheetid))
+        query = db.engine.execute("DELETE FROM team__sheet WHERE team_sheet_id = {}".format(teamsheetid))
+        db.session.commit()
+    except:
+        flash('An error occured whilst trying to delete this teamsheet', category='error')
     return redirect(url_for('create_teamsheet'))
 
-@app.route('/teamsheet/addathletes/<teamsheetid>', methods=['GET','POST'])
+@app.route('/teamsheet/addathletes/<teamsheetid>', methods=['GET','POST'])#complete
 @login_required
 def add_athletes(teamsheetid):
-    athlete_id= request.form.get('athlete')
-    role = request.form.get('role')
-    query = db.engine.execute("INSERT INTO team__sheet VALUES ('{}','{}','{}')".format(teamsheetid,athlete_id,role))
-    db.session.commit()
+    if current_user.usertype not in [1,2,3] or current_user.verified != 1:
+        return render_template('error.html',error="You are not authorised to view this page")
+    try:
+        athlete_id= request.form.get('athlete')
+        role = request.form.get('role')
+        athletes = []
+        query = db.engine.execute('SELECT * FROM team__sheet WHERE team_sheet_id = {} AND athlete_id = {}'.format(teamsheetid,athlete_id))
+        for athlete in query:
+            athletes.append(athlete)
+        if athlete_id == "Select an athlete:":
+            flash('You must select an athlete',category='error')
+        elif role == "Enter athlete role" or role.strip() == "":
+            flash('You must add a role for this athlete',category='error')
+        elif len(athletes) > 0:
+            flash('This athlete already has a role in the teamsheet',category='error')
+        else:
+            query = db.engine.execute("INSERT INTO team__sheet VALUES ('{}','{}','{}')".format(teamsheetid,athlete_id,role))
+            db.session.commit()
+    except:
+        flash('There was an error adding this athlete into the teamsheet',category='error')
     return redirect(url_for('view_teamsheet'))
 
-@app.route('/deletefromteamsheet/<teamsheetid>/<athleteid>')
+@app.route('/deletefromteamsheet/<teamsheetid>/<athleteid>')#complete
 def delete_from_teamsheet(teamsheetid,athleteid):
-    query = db.engine.execute('DELETE FROM team__sheet WHERE team_sheet_id = {} AND athlete_id = {}'.format(teamsheetid,athleteid))
+    if current_user.usertype not in [1,2,3] or current_user.verified != 1:
+        return render_template('error.html',error="You are not authorised to view this page")
+    try:
+        query = db.engine.execute('DELETE FROM team__sheet WHERE team_sheet_id = {} AND athlete_id = {}'.format(teamsheetid,athleteid))
+    except:
+        flash('Was not able to delete this athlete from the teamsheet',catgeory='error')
     return redirect(url_for('view_teamsheet'))
 
 
