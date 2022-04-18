@@ -219,6 +219,7 @@
               <th scope="col">Last Name</th>
               <th scope="col">Email</th>
               <th scope="col">User Type</th>
+              <th scope="col">Start Date</th>
               <th scope="col"></th>
             </tr>
           </thead>
@@ -228,7 +229,7 @@
                 <td>{{ verified_users[user][0] }}</td>
                 <td>{{ verified_users[user][1]}}</td>
                 <td>{{ verified_users[user][2]  }}</td>
-                <td> {{ usertypes[verified_users[user][3]]       }}
+                <td> {{ usertypes[verified_users[user][3]]}}
                   <form method="POST" action="{{url_for('set_users')}}">
                     <select class="form-select" aria-label="Default select example" name="usertype_{{ user }}", id= "usertype">
                       <option selected>Change user type: </option>
@@ -239,6 +240,19 @@
                     </select>
                     <button class="btn btn-primary" type="submit">Submit</button>
                 </form>
+                </td>
+                <td>{{verified_users[user][4]}}
+                  <form method="POST"action="{{url_for('set_start_date')}}">
+                    <div class= "form-group">
+                      <input 
+                      type="date"
+                      class="form-control" 
+                      id="startDate" 
+                      name="startDate_{{ user }}"
+                      placeholder="Enter Start Date: "
+                      /> 
+                      <input class="btn btn-primary" type="submit" value="Submit">
+                  </form>
                 </td>
                 <td><a type="Submit" class="btn btn-danger btn-sm" href= "{{url_for('delete_users', userid=user)}}">Delete</a></td>
             </tr>

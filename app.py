@@ -223,10 +223,10 @@ def verify_users():
                 db.session.commit()
                 return redirect(url_for('verify_users'))
     verified_users = {}
-    query = db.engine.execute('SELECT id, firstName, surname, email, usertype FROM user WHERE verified = {} ORDER BY id'.format(1))
+    query = db.engine.execute('SELECT id, firstName, surname, email, usertype, start_date FROM user WHERE verified = {} ORDER BY id'.format(1))
     for user in query:
         if current_user.id != user[0]:
-            verified_users[user[0]] = [user[1], user[2], user[3],user[4]]
+            verified_users[user[0]] = [user[1], user[2], user[3],user[4],user[5].rstrip('00:00:00.000000')]
     usertypes = {0: 'Athlete', 1: 'Athlete/Coach', 2: 'Coach', 3:'Admin'}
     return render_template('users.html', unverified_users=unverified_users, verified_users= verified_users, usertypes = usertypes)
 
@@ -258,6 +258,33 @@ def set_users():
                 return redirect(url_for('verify_users'))
     return redirect(url_for('verify_users'))
 
+@app.route('/setdate',methods=['GET','POST'])
+@login_required
+def set_start_date():
+    valid = False
+    for item in request.values:
+        if "_" in item:
+            items = item.split("_")
+            if len(items) == 2 and items[0].lower() == "startdate":
+                try:
+                    int(items[1])
+                    valid = item
+                except:
+                    redirect(url_for('verify_users'))
+    if valid:
+        startDate = request.form.get(valid).split("-")
+        userid = valid.split("_")[1]
+        try:
+            startDate = str(date(int(startDate[0]),int(startDate[1]),int(startDate[2])))
+            if request.method == 'POST':
+                query = db.engine.execute('UPDATE user SET start_date = "{}" WHERE id= {}'.format(startDate,userid))
+                db.session.commit()
+                return redirect(url_for('verify_users'))
+        except:
+            return redirect(url_for('verify_users'))
+        return redirect(url_for('verify_users')) 
+    return redirect(url_for('verify_users'))
+    
 @app.route('/deleteuser/<userid>')#complete
 @login_required
 def delete_users(userid):
