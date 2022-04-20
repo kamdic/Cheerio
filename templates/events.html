@@ -60,6 +60,23 @@
         <div class="container">
 <!-- start code here -->
           <div id='calendar'></div>
+          {% with messages = get_flashed_messages(with_categories=true) %} 
+          {% if messages %} 
+          {% for category, message in messages %} 
+          {% if category =='error' %}
+          <div class="alert alert-warning alert-dismissible fade show" role="alert">
+            <strong>{{message}}</strong> 
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+          </div>
+          {% else %}
+          <div class="alert alert-success alter-dismissable fade show" role="alert">
+          <strong>{{message}}</strong>
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+          </div>
+          {% endif %} 
+          {% endfor %} 
+          {% endif %} 
+          {% endwith %}
           <script>
           $(document).ready(function() 
           {

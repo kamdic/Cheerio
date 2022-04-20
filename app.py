@@ -22,6 +22,7 @@ def load_user(user_id):
 
 
 class User(db.Model, UserMixin):
+    __tablename__="User"
     id = db.Column(db.Integer, primary_key = True)
     firstName = db.Column(db.String(50),nullable = False)
     surname = db.Column(db.String(50), nullable = False)
@@ -33,56 +34,191 @@ class User(db.Model, UserMixin):
     verified = db.Column(db.Integer, default = 0)
     #usertype = {0:athlete, 1:athlete/coach, 2:coach, 3:admin}
 
+    def get_id(self):
+        return self.id
+    
+    def get_first_name(self):
+        return self.firstName
+    
+    def get_surname(self):
+        return self.surname
+    
+    def get_dob(self):
+        return self.dob
+    
+    def get_start_date(self):
+        return self.start_date
+    
+    def get_email(self):
+        return self.email
+    
+    def get_password_hash(self):
+        return self.password
+    
+    def get_usertype(self):
+        return self.usertype
+
+    def get_verified(self):
+        return self.verified
+    
+    def get_age(self):
+        dob = self.get_dob().rstrip("00:00:00.0000000").split("-")
+        today = str(date.today()).split("-")
+        if (today[1].strip() == dob[1].strip()) and (today[2].strip() == dob[2].strip()):
+            birthday_age = age(dob)
+        return birthday_age
+    
+    def get_anniversary(self):
+        dob = self.get_dob().rstrip("00:00:00.0000000").split("-")
+        today = str(date.today()).split("-")    
+        year = int(today[0]) - int((self.get_start_date().split("-")[0]))
+        return year
+
 class Fees(db.Model):
+    __tablename__ = "Fees"
     fees_id = db.Column(db.Integer, primary_key= True)
     athlete_id = db.Column(db.Integer)
     amount = db.Column(db.Float, nullable = False)
     paid_date = db.Column(db.DateTime, nullable = True)
     paid = db.Column(db.Integer, default=0)
 
+    def get_fees_id(self):
+        return self.fees_id
+
+    def get_athlete_id(self):
+        return self.athlete_id
+
+    def get_amount(self):
+        return self.amount
+
+    def get_paid_date(self):
+        return self.paid_date
+
+    def get_paid(self):
+        return self.paid
+
 class Team_Details(db.Model):
+    __tablename__ = "Team_Details"
     team_id = db.Column(db.Integer, primary_key= True)
     coach_id = db.Column(db.Integer)
     team_name= db.Column(db.String(20), nullable= False)
     max_age = db.Column(db.Integer, nullable=True)
 
+    def get_team_id(self):
+        return self.team_id
+
+    def get_coach_id(self):
+        return self.coach_id
+
+    def get_team_name(self):
+        return self.team_name
+
+    def get_max_age(self):
+        return self.max_age
+
 class Team_Events(db.Model): #The coach decides they want to make a team for this event so will use the teamsheet id, the id of the event they want the team for and the team the sheet is being created for
+    __tablename__ = "Team_Events"
     team_sheet_id= db.Column(db.Integer, primary_key=True)
     event_id = db.Column(db.Integer)
     team_id = db.Column(db.Integer)
     size = db.Column(db.Integer, nullable=False)
 
+    def get_team_sheet_id(self):
+        return self.team_sheet_id
+
+    def get_eventid(self):
+        return self.event_id
+
+    def get_team_id(self):
+        return self.team_id
+
+    def get_size(self):
+        return self.size
+
 class Team_Members(db.Model): 
+    __tablename__ = "Team_Members"
     team_id = db.Column(db.Integer, primary_key = True) 
     athlete_id = db.Column(db.Integer, primary_key= True)
 
+    def get_team_id(self):
+        return self.team_id
+
+    def get_athlete_id(self):
+        return self.athlete_id
+
 class Team_Sheet(db.Model): #Will add each athlete to the teamsheet from team members
+    __tablename__ = "Team_Sheet"
     team_sheet_id= db.Column(db.Integer, primary_key=True)
     athlete_id= db.Column(db.Integer, primary_key= True)
     role= db.Column(db.String(10), default = 'Tumbler')
-    
 
+    def get_team_sheet_id(self):
+        return self.team_sheet_id
+
+    def get_athlete_id(self):
+        return self.athlete_id
+
+    def get_role(self):
+        return self.role
+    
 class Contacts(db.Model):
+    __tablename__ = "Contacts"
     contacts_id= db.Column(db.Integer, primary_key=True)
     athlete_id= db.Column(db.Integer)
     firstName= db.Column(db.String(50), nullable = False)
     surname= db.Column(db.String(50), nullable = False)
     number= db.Column(db.String(15), nullable = False)
 
+    def get_contacts_id(self):
+        return self.contacts_id
+
+    def get_athlete_id(self):
+        return self.athlete_id
+
+    def get_first_name(self):
+        return self.firstName
+
+    def get_surname(self):
+        return self.surname
+
+    def get_number(self):
+        return self.number
+
 class Events(db.Model): #1. an event is made
+    __tablename__ = "Events"
     events_id= db.Column(db.Integer, primary_key=True)
     event_name= db.Column(db.Text, nullable =False)
     event_start_date= db.Column(db.DateTime, nullable = False)
     event_end_date = db.Column(db.DateTime, nullable=False)
 
+    def get_events_id(self):
+        return self.events_id
+
+    def get_event_name(self):
+        return self.event_name
+
+    def get_event_start_date(self):
+        return self.event_start_date
+
+    def get_event_end_date(self):
+        return self.event_end_date
+
 def eligibity_age(born):
-    today = [2022,5,31]
+    year = (str(date.today()).split("-"))[0]
+    today = [year,5,31]
     born = born.split("-")
     return int(today[0]) - int(born[0]) - (((int(today[1]), int(today[2]))) < ((int(born[1]), int(born[2]))))
 
 def age(born):
     today = str(date.today()).split("-")
     return int(today[0]) - int(born[0]) - (((int(today[1]), int(today[2]))) < ((int(born[1]), int(born[2]))))
+
+def isfloat(num):
+    try:
+        float(num)
+        return True
+    except ValueError:
+        return False
 
 def isValid(email):
     regex = re.compile(r'([A-Za-z0-9]+[.-_])*[A-Za-z0-9]+@[A-Za-z0-9-]+(\.[A-Z|a-z]{2,})+')
@@ -116,27 +252,27 @@ def index():
 @app.route('/signup',  methods=['GET', 'POST']) #complete
 def signup():
     if request.method == 'POST':
-        email = request.form.get('email')
+        email = (request.form.get('email')).lower()
         firstName = request.form.get('firstName')
         surname = request.form.get('surname')
         dob = request.form.get("dob")
         start_date= request.form.get("start_date")
         password1 = request.form.get('password1')
         password2 = request.form.get('password2')
-        user = User.query.filter_by(email=email).first()
+        user = User.query.filter_by(email=email.lower()).first()
         if user:
             flash('There is already an account using this email', category='error')
         elif len(email) <= 3:
             flash('Your email is too short.', category='error')
         elif not isValid(email):
-            flash("You're email is invalid",category='error')
+            flash("Your email is invalid",category='error')
         elif not password(password1):
             flash('Your password must be at least 6 characters, include one number, one uppercase letter, a lowercase letter, and a special symbol', category='error')
         elif password1 != password2:
             flash('Passwords don\'t match.', category='error')
         else:
             dob = dob.split("-")
-            new_user = User(email=email, firstName=firstName, surname=surname, dob = datetime(int(dob[0]), int(dob[1]), int(dob[2])), start_date=start_date, password=generate_password_hash(password1, method='sha256'))
+            new_user = User(email=email.lower(), firstName=firstName, surname=surname, dob = datetime(int(dob[0]), int(dob[1]), int(dob[2])), start_date=start_date, password=generate_password_hash(password1, method='sha256'))
             db.session.add(new_user)
             db.session.commit()
             flash('Your account has been created. Wait for the admin user to verify it.', category='success')
@@ -150,12 +286,12 @@ def login():
         password = request.form.get('password')
         user = User.query.filter_by(email=email).first()
         if user:
-            if check_password_hash(user.password, password):
-                if user.verified == 1:
+            if check_password_hash(user.get_password_hash(), password):
+                if user.get_verified() == 1:
                     login_user(user)
                     if -1 < user.usertype < 3:
                         return redirect(url_for('view_teams',user=current_user))
-                    elif user.usertype == 3:
+                    elif user.get_usertype() == 3:
                         return redirect(url_for('admin'))
                     else:
                         return render_template('error.html',error="You are not authorised to view this page")
@@ -176,7 +312,7 @@ def logout():
 @app.route('/admin')#complete
 @login_required
 def admin():
-    if current_user.usertype !=3:
+    if current_user.get_usertype() !=3:
         return render_template('error.html',error="You are not authorised to view this page")
     query = db.engine.execute('SELECT id, firstName, surname, dob, start_date FROM user ORDER BY start_date DESC')
     birthdays = {}
@@ -188,8 +324,8 @@ def admin():
             birthday_age = age(dob)
             birthdays[user[0]] = [user[1] + " " + user[2], birthday_age]
         year = int(today[0]) -int((user[4].split("-")[0]))
-        if year > 0:
-            anniversaries[user[0]] = [user[1] + " " + user[2], year]
+        if year > 1:
+            anniversaries[user.get_id()] = [user.get_first_name() + " " + user.get_surname(), user.get_anniversary()]
     return render_template('admin.html',birthdays=birthdays, anniversaries= anniversaries)
 
 @app.route('/users', methods= ['GET', 'POST'])#complete
@@ -298,16 +434,30 @@ def delete_users(userid):
         query = db.engine.execute('DELETE FROM contacts WHERE athlete_id = {}'.format(userid))
         query = db.engine.execute('DELETE FROM fees WHERE athlete_id = {}'.format(userid))
         if usertype == 0:
-            query = db.engine.execute('DELETE FROM team__members WHERE athlete_id = {}'.format(userid))
+            try:
+                query = db.engine.execute('DELETE FROM team__members WHERE athlete_id = {}'.format(userid))
+            except:
+                pass
         elif usertype == 1:
-            query = db.engine.execute('DELETE FROM team__members WHERE athlete_id = {}'.format(userid))
-            query = db.engine.execute('DELETE FROM team__details WHERE coach_id = {}'.format(userid))
-            query = db.engine.execute('DELETE FROM team__events,team__sheet,team__members WHERE team__details.coach_id = {} AND team__events.team_sheet_id = team__sheet.team_sheet_id AND team__members.team_id = team__details.team_id'.format(userid))        
+            try:
+                query = db.engine.execute('DELETE FROM team__members WHERE athlete_id = {}'.format(userid))
+                query = db.engine.execute('SELECT team_id FROM team__details WHERE coach_id = {}'.format(userid))
+                for team in query:
+                    teamid = team[0]
+                delete_teams(teamid)
+            except:
+                pass    
         elif usertype == 2:
-            query = db.engine.execute('DELETE FROM team__details WHERE coach_id = {}'.format(userid))
+            try:
+                query = db.engine.execute('DELETE FROM team__details WHERE coach_id = {}'.format(userid))
+            except:
+                pass
         elif usertype == 3:
-            query = db.engine.execute('DELETE FROM team__details WHERE coach_id = {}'.format(userid))
-            query = db.engine.execute('DELETE FROM team__events,team__sheet,team__members WHERE team__details.coach_id = {} AND team__events.team_sheet_id = team__sheet.team_sheet_id AND team__members.team_id = team__details.team_id'.format(userid))
+            try:
+                query = db.engine.execute('DELETE FROM team__details WHERE coach_id = {}'.format(userid))
+                query = db.engine.execute('DELETE FROM team__events,team__sheet,team__members WHERE team__details.coach_id = {} AND team__events.team_sheet_id = team__sheet.team_sheet_id AND team__members.team_id = team__details.team_id'.format(userid))
+            except:
+                pass
         query = db.engine.execute('DELETE FROM user WHERE id = {}'.format(userid))
         db.session.commit()
     except:
@@ -348,7 +498,7 @@ def delete_teams(teamid):
         db.session.commit()
         flash('You have successfully deleted a team', category = 'success')
     except:
-        flash('Not able to delete this team',category='error')
+        pass
     return redirect(url_for('view_teams'))
 
 
@@ -365,18 +515,18 @@ def create_teams():
         coach_id = request.form.get('coach')
         team_name = request.form.get('team_name')
         max_age = request.form.get('max_age')
-        existing_team = Team_Details.query.filter_by(team_name = team_name).first()
+        existing_team = Team_Details.query.filter_by(team_name = team_name.capitalize()).first()
         existing_coach = Team_Details.query.filter_by(coach_id = coach_id).first()
         if existing_team:
             flash('There is already an existing team with this name', category='error')
         elif existing_coach:
-            flash('This coach is already coaching a team')
+            flash('This coach is already coaching a team',category='error')
         elif coach_id == "Select a coach:":
             flash('You must select a coach', category='error')
         elif team_name.rstrip() == "":
             flash('The team name cannot be empty', category='error')
         else:
-            new_team = Team_Details(coach_id= coach_id, team_name= team_name, max_age= max_age)
+            new_team = Team_Details(coach_id= coach_id, team_name= team_name.capitalize(), max_age= max_age)
             db.session.add(new_team)
             db.session.commit()
             flash('Your new team: {} has been created.'.format(team_name), category='success')
@@ -464,7 +614,7 @@ def view_athletes():
                 possible_athletes[team[0]] = eligible_athletes
             return render_template('adminathletes.html',team_count= team_count,teams=teams, team_names=team_names,possible_athletes=possible_athletes)
     except:
-        return render_template('error.html',error="You do not have a team to create a teamsheet for, consult the admin")  
+        return render_template('error.html',error="You do not have a team to create a teamsheet for, consult an admin to create one")  
 
 @app.route('/deleteathletes/<teammemberid>')#complete
 @login_required
@@ -494,14 +644,17 @@ def create_athletes():
     if request.method == 'POST':
         view_athletes()
         teammemberid = request.form.get('athlete').split('_')
-        team_id = teammemberid[0]
-        athlete_id = teammemberid[1]
-        athlete_id = re.sub("[^0-9]", "", athlete_id)
-        try:
-            query = db.engine.execute("INSERT INTO team__members VALUES ('{}','{}')".format(team_id,athlete_id))
-            db.session.commit()
-        except:
-            flash('This athlete is already on the team', category='error')
+        if teammemberid[0] == "Select an athlete:":
+            flash('You must select an athlete',category='error')
+        else:
+            team_id = teammemberid[0]
+            athlete_id = teammemberid[1]
+            athlete_id = re.sub("[^0-9]", "", athlete_id)
+            try:
+                query = db.engine.execute("INSERT INTO team__members VALUES ('{}','{}')".format(team_id,athlete_id))
+                db.session.commit()
+            except:
+                flash('This athlete is already on the team', category='error')
         return redirect(url_for('view_athletes'))
     return render_template('adminathletes.html')
     
@@ -580,7 +733,7 @@ def view_fees():
         query = db.engine.execute('SELECT fees.fees_id, fees.amount, fees.paid_date, fees.paid FROM fees WHERE fees.athlete_id = {} ORDER BY fees.paid_date DESC'.format(current_user.id))
         fees={}
         for fee in query:
-            if fee[3] == 0:
+            if fee[3] != 1:
                 fees[fee[0]] = [fee[1],fee[2],"No",fee[3]]
             else:
                 fees[fee[0]] = [fee[1],fee[2],"Yes",fee[3]]
@@ -605,11 +758,11 @@ def create_fees():
             athletes[athlete[0]] = [athlete[1]+ " "+ athlete[2]]   
         athlete_id = request.form.get('athlete')
         amount = request.form.get('amount')
-        check = amount.isnumeric()
+        check = isfloat(amount)
         if athlete_id == "Select an athlete:":
             flash('You must select an athlete',category='error')
         elif not check:
-            flash('You must add a numeric number')
+            flash('The input must be numeric',category='error')
         else:
             query = db.engine.execute("INSERT INTO fees (athlete_id, amount) VALUES ('{}','{}')".format(athlete_id, amount))
             db.session.commit()
@@ -707,8 +860,8 @@ def create_contacts():
             athlete_id = request.form.get('athlete')
             firstName = request.form.get('firstName')
             surname = request.form.get('surname')
-            number = request.form.get('number')
-            query = db.engine.execute("SELECT COUNT(contacts_id) FROM Contacts WHERE athlete_id = '{}' AND firstName = '{}' AND surname  = '{}' AND number='{}'".format(athlete_id, firstName, surname, number))
+            number = (request.form.get('number')).replace(" ","")
+            query = db.engine.execute("SELECT COUNT(contacts_id) FROM Contacts WHERE athlete_id = '{}' AND firstName = '{}' AND surname  = '{}' AND number='{}'".format(athlete_id, firstName.capitalize(), surname.capitalize(), number))
             for num in query:
                 existing = num[0]
             if existing > 0:
@@ -724,7 +877,7 @@ def create_contacts():
             elif not number.isnumeric() :
                 flash('The phone number must be strictly numeric', category='error')
             else:
-                query = db.engine.execute("INSERT INTO contacts (athlete_id, firstName, surname, number) VALUES ('{}','{}', '{}', '{}')".format(athlete_id, firstName,surname,number))
+                query = db.engine.execute("INSERT INTO contacts (athlete_id, firstName, surname, number) VALUES ('{}','{}', '{}', '{}')".format(athlete_id, firstName.capitalize(),surname.capitalize(),number))
                 db.session.commit()
         except:
             pass                  
@@ -916,7 +1069,7 @@ def create_teamsheet():
                     flash('There was an error when creating this team sheet',category='error')        
             return render_template('admincreateteamsheet.html', events = events, team = team_name,sizes=sizes, team_sheets=existing_sheets, count=0)
     except:
-        return render_template('error.html',error="You do not have a team to create a teamsheet for, consult the admin")  
+        return render_template('error.html',error="You do not have a team to create a teamsheet for, consult an admin to create one")  
 
 @app.route('/deleteteamsheet/<teamsheetid>')#complete
 @login_required

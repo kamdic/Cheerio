@@ -60,6 +60,23 @@
   
         <div class="container">
 <!-- start code here -->
+        {% with messages = get_flashed_messages(with_categories=true) %} 
+        {% if messages %} 
+        {% for category, message in messages %} 
+        {% if category =='error' %}
+        <div class="alert alert-warning alert-dismissible fade show" role="alert">
+          <strong>{{message}}</strong> 
+          <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+        {% else %}
+        <div class="alert alert-success alter-dismissable fade show" role="alert">
+        <strong>{{message}}</strong>
+          <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+        {% endif %} 
+        {% endfor %} 
+        {% endif %} 
+        {% endwith %}
         {% for team_sheet in team_sheets%}
           <h3>{{team_sheets[team_sheet][0]}} - {{team_sheets[team_sheet][1]}}</h3>
           <table class="table table-striped">

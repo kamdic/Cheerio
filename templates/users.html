@@ -176,6 +176,23 @@
     <main class="mt-5 pt-3">
       <div class="container-fluid">
         <!-- where to add to white area -->
+        {% with messages = get_flashed_messages(with_categories=true) %} 
+        {% if messages %} 
+        {% for category, message in messages %} 
+        {% if category =='error' %}
+        <div class="alert alert-warning alert-dismissible fade show" role="alert">
+          <strong>{{message}}</strong> 
+          <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+        {% else %}
+        <div class="alert alert-success alter-dismissable fade show" role="alert">
+        {{message}}
+          <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+        {% endif %} 
+        {% endfor %} 
+        {% endif %} 
+        {% endwith %}
         <h3>Unverified Users</h3>
         <table class="table table-bordered">
           <thead>
