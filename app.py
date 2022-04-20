@@ -47,7 +47,7 @@ class User(db.Model, UserMixin):
         return self.dob
     
     def get_start_date(self):
-        return self.start_date
+        return str(self.start_date)
     
     def get_email(self):
         return self.email
@@ -61,21 +61,58 @@ class User(db.Model, UserMixin):
     def get_verified(self):
         return self.verified
     
-    def get_age(self):
-        dob = self.get_dob().rstrip("00:00:00.0000000").split("-")
+    def get_birthday(self):
+        dob= str(self.get_dob()).rstrip("00:00:00.0000000").split("-")
         today = str(date.today()).split("-")
         if (today[1].strip() == dob[1].strip()) and (today[2].strip() == dob[2].strip()):
-            birthday_age = age(dob)
-        return birthday_age
+            return True
+        return False
+    
+    def get_age(self):
+        today = str(date.today()).split("-")
+        dob = str(self.get_dob()).rstrip("00:00:00.0000000").split("-")
+        return int(today[0]) - int(dob[0]) - (((int(today[1]), int(today[2]))) < ((int(dob[1]), int(dob[2]))))
     
     def get_anniversary(self):
-        dob = self.get_dob().rstrip("00:00:00.0000000").split("-")
         today = str(date.today()).split("-")    
-        year = int(today[0]) - int((self.get_start_date().split("-")[0]))
+        year = int(today[0]) - int((str(self.get_start_date()).split("-")[0]))
         return year
+    
+    def verify_user(self,usertype):
+        db.engine.execute('UPDATE user SET usertype = {}, verified = {} WHERE id = {}'.format(usertype, 1,self.get_id()))
+    
+    def set_usertype(self, usertype):
+        db.engine.execute('UPDATE user SET usertype = {} WHERE id = {}'.format(usertype, self.get_id()))
+    
+    def set_start(self,startDate):
+        startDate = str(("-").join(startDate)) + '00:00:00.0000000'
+        db.engine.execute('UPDATE user SET start_date = "{}" WHERE id= {}'.format(startDate,self.get_id()))
+    
+    def delete_contact(self):
+        db.engine.execute('DELETE FROM contacts WHERE athlete_id = {}'.format(self.get_id()))
+    
+    def delete_fee(self):
+        db.engine.execute('DELETE FROM fees WHERE athlete_id = {}'.format(self.get_id()))
+    
+    def delete_from_members(self):
+        db.engine.execute('DELETE FROM team__members WHERE athlete_id = {}'.format(self.get_id()))
+    
+    def delete_team(self):
+        db.engine.execute('DELETE FROM team__details WHERE coach_id = {}'.format(self.get_id()))
+    
+    def delete_user(self):
+        db.engine.execute('DELETE FROM user WHERE id = {}'.format(self.get_id()))
+    
+
+    def get_eligibility_age(self):
+        year = (str(date.today()).split("-"))[0]
+        today = [year,5,31]
+        athlete_date = str(self.get_dob()).rstrip("00:00:00.0000000")
+        born = athlete_date.split("-")
+        return int(today[0]) - int(born[0]) - (((int(today[1]), int(today[2]))) < ((int(born[1]), int(born[2]))))
 
 class Fees(db.Model):
-    __tablename__ = "Fees"
+    __tablename__ = "fees"
     fees_id = db.Column(db.Integer, primary_key= True)
     athlete_id = db.Column(db.Integer)
     amount = db.Column(db.Float, nullable = False)
@@ -92,13 +129,16 @@ class Fees(db.Model):
         return self.amount
 
     def get_paid_date(self):
-        return self.paid_date
+        return str(self.paid_date)
 
     def get_paid(self):
         return self.paid
+    
+    def delete_fee(self):
+        db.engine.execute('DELETE FROM fees WHERE fees_id = {}'.format(self.get_fees_id()))
 
 class Team_Details(db.Model):
-    __tablename__ = "Team_Details"
+    __tablename__ = 'team__details'
     team_id = db.Column(db.Integer, primary_key= True)
     coach_id = db.Column(db.Integer)
     team_name= db.Column(db.String(20), nullable= False)
@@ -115,9 +155,23 @@ class Team_Details(db.Model):
 
     def get_max_age(self):
         return self.max_age
+    
+    def get_team_information(self):
+        query = db.engine.execute("SELECT team__details.max_age, team__details.team_name, user.firstName, user.surname FROM team__details, user WHERE user.id == team__details.coach_id AND team__details.team_id = {}".format(self.get_team_id()))
+        for team in query:
+            return [team[0], team[1], team[2] + " " + team[3]]
+    
+    def delete_team(self):
+        db.engine.execute('DELETE FROM team__details WHERE team_id = {}'.format(self.get_team_id()))
+        query = db.engine.execute('SELECT team_sheet_id FROM team__events WHERE team_id = {}'.format(self.get_team_id()))
+        for sheet in query:
+            db.engine.execute('DELETE FROM team__sheet WHERE team__sheet_id = {}'.format(sheet[0]))
+        db.engine.execute('DELETE FROM team__events WHERE team__events.team_id = {}'.format(self.get_team_id()))
+        db.engine.execute('DELETE FROM team__members WHERE team_id = {}'.format(self.get_team_id()))
+    
 
 class Team_Events(db.Model): #The coach decides they want to make a team for this event so will use the teamsheet id, the id of the event they want the team for and the team the sheet is being created for
-    __tablename__ = "Team_Events"
+    __tablename__ = "team__events"
     team_sheet_id= db.Column(db.Integer, primary_key=True)
     event_id = db.Column(db.Integer)
     team_id = db.Column(db.Integer)
@@ -136,7 +190,7 @@ class Team_Events(db.Model): #The coach decides they want to make a team for thi
         return self.size
 
 class Team_Members(db.Model): 
-    __tablename__ = "Team_Members"
+    __tablename__ = "team__members"
     team_id = db.Column(db.Integer, primary_key = True) 
     athlete_id = db.Column(db.Integer, primary_key= True)
 
@@ -145,9 +199,20 @@ class Team_Members(db.Model):
 
     def get_athlete_id(self):
         return self.athlete_id
+    
+    def get_athletes(self,teamid):
+        query = db.engine.execute('SELECT user.id, user.firstName, user.surname FROM user, team__members WHERE user.id = team__members.athlete_id AND team__members.team_id = {}'.format(teamid))
+        athletes = []
+        for athlete in query:
+            athlete = User.query.filter_by(id = athlete[0]).first()
+            athletes.append(athlete.get_first_name() + " " + athlete.get_surname())
+        return athletes
+    
+    def delete_from_members(self,teamid,athleteid):
+        db.engine.execute('DELETE FROM team__members WHERE (team_id = {} AND athlete_id = {})'.format(teamid, athleteid))
 
 class Team_Sheet(db.Model): #Will add each athlete to the teamsheet from team members
-    __tablename__ = "Team_Sheet"
+    __tablename__ = "team__sheet"
     team_sheet_id= db.Column(db.Integer, primary_key=True)
     athlete_id= db.Column(db.Integer, primary_key= True)
     role= db.Column(db.String(10), default = 'Tumbler')
@@ -162,7 +227,7 @@ class Team_Sheet(db.Model): #Will add each athlete to the teamsheet from team me
         return self.role
     
 class Contacts(db.Model):
-    __tablename__ = "Contacts"
+    __tablename__ = "contacts"
     contacts_id= db.Column(db.Integer, primary_key=True)
     athlete_id= db.Column(db.Integer)
     firstName= db.Column(db.String(50), nullable = False)
@@ -183,9 +248,10 @@ class Contacts(db.Model):
 
     def get_number(self):
         return self.number
+    
 
 class Events(db.Model): #1. an event is made
-    __tablename__ = "Events"
+    __tablename__ = "events"
     events_id= db.Column(db.Integer, primary_key=True)
     event_name= db.Column(db.Text, nullable =False)
     event_start_date= db.Column(db.DateTime, nullable = False)
@@ -202,16 +268,11 @@ class Events(db.Model): #1. an event is made
 
     def get_event_end_date(self):
         return self.event_end_date
+    
+    def delete_event(self):
+        db.engine.execute('DELETE FROM Events WHERE events_id = {}'.format(self.get_events_id()))
 
-def eligibity_age(born):
-    year = (str(date.today()).split("-"))[0]
-    today = [year,5,31]
-    born = born.split("-")
-    return int(today[0]) - int(born[0]) - (((int(today[1]), int(today[2]))) < ((int(born[1]), int(born[2]))))
 
-def age(born):
-    today = str(date.today()).split("-")
-    return int(today[0]) - int(born[0]) - (((int(today[1]), int(today[2]))) < ((int(born[1]), int(born[2]))))
 
 def isfloat(num):
     try:
@@ -318,25 +379,23 @@ def admin():
     birthdays = {}
     anniversaries = {} 
     for user in query:
-        dob = user[3].rstrip("00:00:00.0000000").split("-")
-        today = str(date.today()).split("-")
-        if (today[1].strip() == dob[1].strip()) and (today[2].strip() == dob[2].strip()):
-            birthday_age = age(dob)
-            birthdays[user[0]] = [user[1] + " " + user[2], birthday_age]
-        year = int(today[0]) -int((user[4].split("-")[0]))
-        if year > 1:
+        user = User.query.filter_by(id = user[0]).first()
+        if user.get_birthday():
+            birthdays[user.get_id()] = [user.get_first_name() + " " + user.get_surname(), user.get_age()]
+        if user.get_anniversary() > 1:
             anniversaries[user.get_id()] = [user.get_first_name() + " " + user.get_surname(), user.get_anniversary()]
     return render_template('admin.html',birthdays=birthdays, anniversaries= anniversaries)
 
 @app.route('/users', methods= ['GET', 'POST'])#complete
 @login_required
 def verify_users():
-    if current_user.usertype < 3:
+    if current_user.get_usertype() < 3:
         return render_template('error.html',error="You are not authorised to view this page")
     unverified_users = {}
     query = db.engine.execute('SELECT id, firstName, surname, email FROM user WHERE verified < {}'.format(1))
     for user in query:
-        unverified_users[user[0]] = [user[1],user[2],user[3]]
+        user = User.query.filter_by(id = user[0]).first()
+        unverified_users[user.get_id()] = [user.get_first_name(),user.get_surname(),user.get_email()]
     valid = False
     for item in request.values:
         item.split(("_"))
@@ -355,21 +414,23 @@ def verify_users():
             if usertype == 'Select user type':
                 flash('You must select a usertype',category='error')
             else:
-                query = db.engine.execute('UPDATE user SET usertype = {}, verified = {} WHERE id = {}'.format(usertype, 1,userid))
+                user_to_change = User.query.filter_by(id = userid).first()
+                user_to_change.verify_user(usertype)
                 db.session.commit()
                 return redirect(url_for('verify_users'))
     verified_users = {}
     query = db.engine.execute('SELECT id, firstName, surname, email, usertype, start_date FROM user WHERE verified = {} ORDER BY id'.format(1))
     for user in query:
-        if current_user.id != user[0]:
-            verified_users[user[0]] = [user[1], user[2], user[3],user[4],user[5].rstrip('00:00:00.000000')]
+        user = User.query.filter_by(id = user[0]).first()
+        if current_user.get_id() != user.get_id():
+            verified_users[user.get_id()] = [user.get_first_name(), user.get_surname(), user.get_email(),user.get_usertype(),user.get_start_date().rstrip('00:00:00.000000')]
     usertypes = {0: 'Athlete', 1: 'Athlete/Coach', 2: 'Coach', 3:'Admin'}
     return render_template('users.html', unverified_users=unverified_users, verified_users= verified_users, usertypes = usertypes)
 
 @app.route('/setusers', methods= ['GET', 'POST'])#complete
 @login_required
 def set_users():
-    if current_user.usertype < 3:
+    if current_user.get_usertype() < 3:
         return render_template('error.html',error="You are not authorised to view this page")
     verify_users()
     valid = False
@@ -389,12 +450,13 @@ def set_users():
             if usertype == 'Select user type':
                 flash('You must select a usertype',category='error')
             else:
-                query = db.engine.execute('UPDATE user SET usertype = {} WHERE id = {}'.format(usertype, userid))
+                user = User.query.filter_by(id = userid).first()
+                user.set_usertype(usertype)
                 db.session.commit()
                 return redirect(url_for('verify_users'))
     return redirect(url_for('verify_users'))
 
-@app.route('/setdate',methods=['GET','POST'])
+@app.route('/setdate',methods=['GET','POST'])#complete
 @login_required
 def set_start_date():
     valid = False
@@ -408,12 +470,12 @@ def set_start_date():
                 except:
                     redirect(url_for('verify_users'))
     if valid:
-        startDate = request.form.get(valid).split("-")
+        startDate = str(request.form.get(valid)).split("-")
         userid = valid.split("_")[1]
         try:
-            startDate = str(date(int(startDate[0]),int(startDate[1]),int(startDate[2])))
             if request.method == 'POST':
-                query = db.engine.execute('UPDATE user SET start_date = "{}" WHERE id= {}'.format(startDate,userid))
+                user = User.query.filter_by(id =userid).first()
+                user.set_start(startDate)
                 db.session.commit()
                 return redirect(url_for('verify_users'))
         except:
@@ -424,44 +486,45 @@ def set_start_date():
 @app.route('/deleteuser/<userid>')#complete
 @login_required
 def delete_users(userid):
-    if current_user.usertype != 3:
+    if current_user.get_usertype() != 3:
         return render_template('error.html',error="You are not authorised to view this page")    
     verify_users()
     try:
-        query = db.engine.execute('SELECT usertype FROM user WHERE id = {}'.format(userid))
-        for info in query:
-            usertype = info[0]
-        query = db.engine.execute('DELETE FROM contacts WHERE athlete_id = {}'.format(userid))
-        query = db.engine.execute('DELETE FROM fees WHERE athlete_id = {}'.format(userid))
-        if usertype == 0:
+        user_to_delete = User.query.filter_by(id = userid).first()
+        user_to_delete.delete_contact()
+        user_to_delete.delete_fee()
+        if user_to_delete.get_usertype() == 0:
             try:
-                query = db.engine.execute('DELETE FROM team__members WHERE athlete_id = {}'.format(userid))
+                user_to_delete.delete_from_members()
             except:
                 pass
-        elif usertype == 1:
+        elif user_to_delete.get_usertype() == 1:
             try:
-                query = db.engine.execute('DELETE FROM team__members WHERE athlete_id = {}'.format(userid))
+                user_to_delete.delete_from_members()
                 query = db.engine.execute('SELECT team_id FROM team__details WHERE coach_id = {}'.format(userid))
                 for team in query:
                     teamid = team[0]
                 delete_teams(teamid)
             except:
                 pass    
-        elif usertype == 2:
+        elif user_to_delete.get_usertype() == 2:
             try:
-                query = db.engine.execute('DELETE FROM team__details WHERE coach_id = {}'.format(userid))
+                user_to_delete.delete_team()
             except:
                 pass
-        elif usertype == 3:
+        elif user_to_delete.get_usertype() == 3:
             try:
-                query = db.engine.execute('DELETE FROM team__details WHERE coach_id = {}'.format(userid))
-                query = db.engine.execute('DELETE FROM team__events,team__sheet,team__members WHERE team__details.coach_id = {} AND team__events.team_sheet_id = team__sheet.team_sheet_id AND team__members.team_id = team__details.team_id'.format(userid))
+                user_to_delete.delete_from_members()
+                query = db.engine.execute('SELECT team_id FROM team__details WHERE coach_id = {}'.format(userid))
+                for team in query:
+                    teamid = team[0]
+                delete_teams(teamid)
             except:
                 pass
-        query = db.engine.execute('DELETE FROM user WHERE id = {}'.format(userid))
+        user_to_delete.delete_user()
         db.session.commit()
     except:
-        flash('There was an error when deleting this user',category='error')
+        pass
     return redirect(url_for('verify_users'))
 
 @app.route('/teams', methods=['GET','POST'])#complete
@@ -471,30 +534,28 @@ def view_teams():
     coaches = {}
     query = db.engine.execute("SELECT team__details.team_id, team__details.max_age, team__details.team_name, user.firstName, user.surname FROM team__details, user WHERE user.id == team__details.coach_id ")
     for team in query:
-        team_names[team[0]] = [team[1], team[2], team[3] + " " + team[4]]
+        team = Team_Details.query.filter_by(team_id = team[0]).first()
+        team_names[team.get_team_id()] = team.get_team_information()
     query = db.engine.execute('SELECT user.id, user.firstName, user.surname FROM user WHERE user.usertype > {}'.format(0))
     coaches = {}
     for coach in query:
-        coaches[coach[0]] = [coach[1]+ " "+ coach[2]]
-    if current_user.usertype == -1 or current_user.verified == 0:
+        coach = User.query.filter_by(id = coach[0]).first()
+        coaches[coach.get_id()] = [coach.get_first_name()+ " "+ coach.get_surname()]
+    if current_user.get_usertype() == -1 or current_user.get_verified() != 1:
         return render_template('error.html',error="You are not authorised to view this page")
-    if -1 < current_user.usertype < 3:
+    if -1 < current_user.get_usertype() < 3:
         return render_template('teams.html', team_names = team_names, coaches = coaches)
-    query = db.engine.execute("SELECT team__details.team_id, team__details.max_age, team__details.team_name, user.firstName, user.surname FROM team__details, user WHERE user.id == team__details.coach_id")
-    for team in query:
-        team_names[team[0]] = [team[1], team[2], team[3] + " " + team[4]]
     db.session.commit()
     return render_template('adminteams.html', team_names = team_names,coaches = coaches)
 
 @app.route('/deleteteams/<teamid>')#complete
 @login_required
 def delete_teams(teamid):
-    if current_user.usertype != 3 or current_user.verified != 1:
+    if current_user.get_usertype() != 3 or current_user.get_verified() != 1:
         return render_template('error.html',error="You are not authorised to view this page")
     try:
-        query = db.engine.execute('DELETE FROM team__details WHERE team_id = {}'.format(teamid))
-        query = db.engine.execute('DELETE FROM team__events,team__sheet WHERE team__events.team_id = {} AND team__events.team_sheet_id = team__sheet.team_sheet_id'.format(teamid))
-        query = db.engine.execute('DELETE FROM team__members WHERE team_id = {}'.format(teamid))
+        team = Team_Details.query.filter_by(team_id = teamid).first()
+        team.delete_team()
         db.session.commit()
         flash('You have successfully deleted a team', category = 'success')
     except:
@@ -505,7 +566,7 @@ def delete_teams(teamid):
 @app.route('/createteams', methods=['GET','POST'])#complete
 @login_required
 def create_teams():
-    if current_user.usertype != 3 or current_user.verified != 1:
+    if current_user.get_usertype() != 3 or current_user.get_verified() != 1:
         return render_template('error.html',error="You are not authorised to view this page")
     if request.method == 'POST':
         query = db.engine.execute('SELECT user.id, user.firstName, user.surname FROM user WHERE user.usertype > {}'.format(0))
@@ -537,45 +598,45 @@ def create_teams():
 @login_required
 def view_athletes():
     try:
-        if current_user.usertype not in [0,1,2,3] or current_user.verified != 1:
+        if current_user.get_usertype() not in [0,1,2,3] or current_user.get_verified() != 1:
             return render_template('error.html',error="You are not authorised to view this page")
-        elif  current_user.usertype == 0:
+        elif  current_user.get_usertype() == 0:
             members = {}
-            query = db.engine.execute('SELECT team__details.team_id, team__details.team_name FROM team__members, team__details WHERE team__details.team_id = team__members.team_id AND team__members.athlete_id = {}'.format(current_user.id))
+            query = db.engine.execute('SELECT team__details.team_id FROM team__members, team__details WHERE team__details.team_id = team__members.team_id AND team__members.athlete_id = {}'.format(current_user.get_id()))
             for team in query:
-                athletes =[]
-                query = db.engine.execute('SELECT user.firstName, user.surname FROM user, team__members WHERE user.id = team__members.athlete_id AND team__members.team_id = {}'.format(team[0]))
-                for athlete in query:
-                    athletes.append(athlete[0] + " " + athlete[1])
-                members[team[0]] = [team[1],athletes]
+                team = Team_Details.query.filter_by(team_id = team[0]).first()
+                team_members = Team_Members.query.filter_by(team_id = team.get_team_id()).first()
+                athletes = team_members.get_athletes(team.get_team_id())
+                members[team.get_team_id()] = [team.get_team_name(),athletes]
             return render_template('athletes.html',members=members)
-        elif  current_user.usertype == 1:
+        elif  current_user.get_usertype() == 1:
             team_members = {}
-            query = db.engine.execute('SELECT team__details.team_id, team__details.team_name FROM team__members, team__details WHERE team__details.team_id = team__members.team_id AND team__members.athlete_id = {}'.format(current_user.id))
+            query = db.engine.execute('SELECT team__details.team_id FROM team__members, team__details WHERE team__details.team_id = team__members.team_id AND team__members.athlete_id = {}'.format(current_user.get_id()))
             for team in query:
-                athletes =[]
-                query = db.engine.execute('SELECT user.firstName, user.surname FROM user, team__members WHERE user.id = team__members.athlete_id AND team__members.team_id = {}'.format(team[0]))
-                for athlete in query:
-                    athletes.append(athlete[0] + " " + athlete[1])
-                team_members[team[0]] = [team[1],athletes]
+                team = Team_Details.query.filter_by(teamid = team[0])
+                team_members = Team_Members.query.filter_by(team_id = team.get_team_id()).first()
+                athletes = team_members.get_athletes(team.get_team_id())
+                team_members[team.get_team_id()] = [team.get_team_id(),athletes]
             coach_members = {}
-            athletes = []
-            query = db.engine.execute('SELECT team__details.team_name, user.firstName, user.surname FROM team__details, user, team__members WHERE team__details.team_id = team__members.team_id AND team__details.coach_id = {} AND user.id = team__members.athlete_id'.format(current_user.id))
+            query = db.engine.execute('SELECT team__details.team_id, team__details.team_name, user.firstName, user.surname FROM team__details, user, team__members WHERE team__details.team_id = team__members.team_id AND team__details.coach_id = {} AND user.id = team__members.athlete_id'.format(current_user.get_id()))
             for member in query:
-                team_name = member[0]
-                athletes.append(member[1] + " " + member[2])   
-            coach_members[team_name] = athletes           
+                team = Team_Details.query.filter_by(team_id = member[0]).first()
+                team_member = Team_Members.query.filter_by(team_id = team.get_team_id()).first()
+                team_name = team.get_team_name()
+                athletes = team_member.get_athletes(team.get_team_id())  
+                coach_members[team_name] = athletes           
             return render_template('coachathleteathletes.html',team_members=team_members,coach_members=coach_members)
-        elif  current_user.usertype == 2:
+        elif  current_user.get_usertype() == 2:
             members = {}
-            athletes = []
-            query = db.engine.execute('SELECT team__details.team_name, user.firstName, user.surname FROM team__details, user, team__members WHERE team__details.team_id = team__members.team_id AND team__details.coach_id = {} AND user.id = team__members.athlete_id'.format(current_user.id))
+            query = db.engine.execute('SELECT team__details.team_id, team__details.team_name, user.firstName, user.surname FROM team__details, user, team__members WHERE team__details.team_id = team__members.team_id AND team__details.coach_id = {} AND user.id = team__members.athlete_id'.format(current_user.get_id()))
             for member in query:
-                team_name = member[0]
-                athletes.append(member[1] + " " + member[2])   
+                team = Team_Details.query.filter_by(team_id = member[0]).first()
+                team_members = Team_Members.query.filter_by(team_id = team.get_team_id()).first()
+                team_name = team.get_team_name()
+                athletes = team_members.get_athletes(team.get_team_id()) 
             members[team_name] = athletes   
             return render_template('coachathletes.html',members = members)           
-        elif current_user.usertype == 3:
+        elif current_user.get_usertype() == 3:
             team_count = db.engine.execute("SELECT COUNT(team_id) FROM team__details")
             teams = {}
             count = 1
@@ -586,7 +647,8 @@ def view_athletes():
                 query = db.engine.execute("SELECT user.id, user.firstName, user.surname, user.dob FROM user, team__members WHERE user.id = team__members.athlete_id AND team__members.team_id = {}".format(count))
                 athletes = []
                 for athlete in query:
-                    element = [str(index) +athlete[1] + " " + athlete[2]]
+                    athlete = User.query.filter_by(id = athlete[0]).first()
+                    element = [str(index) +athlete.get_first_name() + " " + athlete.get_surname()]
                     athletes += element
                     index +=1
                 if len(athletes) > 0:
@@ -599,19 +661,21 @@ def view_athletes():
             possible_athletes = {}
             query = db.engine.execute('SELECT team_id, max_age FROM team__details')
             for team in query:
-                max_age = team[1]
+                team = Team_Details.query.filter_by(team_id = team[0]).first()
+                max_age = team.get_max_age()
                 eligible_athletes = []
                 athletes = db.engine.execute('SELECT id, firstName, surname, dob FROM user WHERE usertype = {} OR usertype = {}'.format(0,1))
                 if max_age:
                     for athlete in athletes:
-                        athlete_date = athlete[3].rstrip("00:00:00.0000000")
-                        athlete_age = eligibity_age(athlete_date)
+                        athlete = User.query.filter_by(id = athlete[0]).first()
+                        athlete_age = athlete.get_eligibility_age()
                         if max_age >= athlete_age:
-                            eligible_athletes += [str(athlete[0])+athlete[1] + " "+ athlete[2]]  
+                            eligible_athletes += [str(athlete.get_id())+athlete.get_first_name() + " "+ athlete.get_surname()]  
                 else:
                     for athlete in athletes:
-                        eligible_athletes += [str(athlete[0])+athlete[1] + " "+ athlete[2]]  
-                possible_athletes[team[0]] = eligible_athletes
+                        athlete = User.query.filter_by(id = athlete[0]).first()
+                        eligible_athletes += [str(athlete.get_id())+athlete.get_first_name() + " "+ athlete.get_surname()]  
+                possible_athletes[team.get_team_id()] = eligible_athletes
             return render_template('adminathletes.html',team_count= team_count,teams=teams, team_names=team_names,possible_athletes=possible_athletes)
     except:
         return render_template('error.html',error="You do not have a team to create a teamsheet for, consult an admin to create one")  
@@ -619,7 +683,7 @@ def view_athletes():
 @app.route('/deleteathletes/<teammemberid>')#complete
 @login_required
 def delete_athletes(teammemberid):
-    if current_user.usertype != 3 or current_user.verified != 1:
+    if current_user.get_usertype() != 3 or current_user.get_verified()!= 1:
         return render_template('error.html',error="You are not authorised to view this page")
     try:
         ids = []
@@ -629,7 +693,8 @@ def delete_athletes(teammemberid):
         teammemberid = re.sub("[^0-9]", "", teammemberid)
         team_id = ids[int(teammemberid)][0]
         athlete_id = ids[int(teammemberid)][1]
-        query = db.engine.execute('DELETE FROM team__members WHERE (team_id = {} AND athlete_id = {})'.format(team_id, athlete_id))
+        team_member = Team_Members.query.filter_by(team_id = team_id, athlete_id = athlete_id).first()
+        team_member.delete_from_members(team_id,athlete_id)
         flash('You have successfully deleted a team member', category = 'success')
         db.session.commit() 
     except:
@@ -639,7 +704,7 @@ def delete_athletes(teammemberid):
 @app.route('/createathletes', methods=['GET','POST'])#complete
 @login_required
 def create_athletes():
-    if current_user.usertype != 3 or current_user.verified != 1:
+    if current_user.get_usertype() != 3 or current_user.get_verified() != 1:
         return render_template('error.html',error="You are not authorised to view this page")    
     if request.method == 'POST':
         view_athletes()
@@ -664,18 +729,19 @@ def view_events():
     cal_events = {}
     query = db.engine.execute("SELECT events_id, event_name, event_start_date, event_end_date FROM Events")
     for event in query:
-        cal_events[event[0]] = [event[1],event[2],event[3]]    
-    if current_user.usertype not in [0,1,2,3] or current_user.verified != 1:
+        event = Events.query.filter_by(events_id = event[0]).first()
+        cal_events[event.get_events_id()] = [event.get_event_name(),event.get_event_start_date(),event.get_event_end_date()]    
+    if current_user.get_usertype() not in [0,1,2,3] or current_user.get_verified() != 1:
         return render_template('error.html',error="You are not authorised to view this page")  
-    if -1 < current_user.usertype < 3:
+    if -1 < current_user.get_usertype() < 3:
         return render_template('events.html', events=cal_events)
-    elif current_user.usertype >2: 
+    elif current_user.get_usertype() >2: 
         return render_template('adminevents.html', events=cal_events)
 
 @app.route('/createevents', methods= ['GET','POST'])#complete
 @login_required
 def create_events():
-    if current_user.usertype != 3 or current_user.verified != 1:
+    if current_user.get_usertype() != 3 or current_user.get_verified() != 1:
         return render_template('error.html',error="You are not authorised to view this page")
     try:  
         req = request.get_json()
@@ -701,61 +767,66 @@ def create_events():
 @app.route('/deleteevents', methods= ['GET','POST'])#complete
 @login_required
 def delete_events():
-    if current_user.usertype != 3 or current_user.verified != 1:
-        return render_template('error.html',error="You are not authorised to view this page")
-    try:  
-        req = request.get_json()
-        name = req['title']
-        start = req['start']
-        end = req['end']
-        start = start.strip("Z").split("T")
-        end = end.strip("Z").split("T")
-        start = str((" ").join(start))
-        end = str((" ").join(end))    
-        query = db.engine.execute('SELECT * FROM Events')
-        events = []
-        for event in query:
-            if event[2] == start and event[3] == end and event[1] == name:
-                events.append(event[0])
-        if len(events) == 1:
-            query = db.engine.execute('DELETE FROM Events WHERE events_id = {}'.format(events[0]))
-            db.session.commit()
-    except:
-        flash('Was not able to delete this event', category='error')
+    if current_user.get_usertype() != 3 or current_user.get_verified() != 1:
+        return render_template('error.html',error="You are not authorised to view this page") 
+    req = request.get_json()
+    name = req['title']
+    start = req['start']
+    end = req['end']
+    start = start.strip("Z").split("T")
+    end = end.strip("Z").split("T")
+    start = (str((" ").join(start))).rstrip('0').rstrip('.')
+    end = str((" ").join(end))  .rstrip('0').rstrip('.')  
+    query = db.engine.execute('SELECT * FROM Events')
+    events = []
+    for event in query:
+        event = Events.query.filter_by(events_id = event[0]).first()
+        if str(event.get_event_start_date()) == start and str(event.get_event_end_date()) == end and event.get_event_name() == name:
+            events.append(event.get_events_id())
+    if len(events) == 1:
+        event = Events.query.filter_by(events_id = events[0]).first()
+        event.delete_event()
+        db.session.commit()
+    flash('Was not able to delete this event', category='error')
     return redirect(url_for('view_events'))
 
 @app.route('/fees')#complete
 @login_required
 def view_fees():
-    if current_user.usertype not in [0,1,2,3] or current_user.verified != 1:
+    if current_user.get_usertype() not in [0,1,2,3] or current_user.get_verified() != 1:
         return render_template('error.html',error="You are not authorised to view this page")  
-    if -1< current_user.usertype < 3:
+    if -1< current_user.get_usertype() < 3:
         query = db.engine.execute('SELECT fees.fees_id, fees.amount, fees.paid_date, fees.paid FROM fees WHERE fees.athlete_id = {} ORDER BY fees.paid_date DESC'.format(current_user.id))
         fees={}
         for fee in query:
-            if fee[3] != 1:
-                fees[fee[0]] = [fee[1],fee[2],"No",fee[3]]
+            fee = Fees.query.filter_by(fees_id = fee[0]).first()
+            if fee.get_paid() != 1:
+                fees[fee.get_fees_id()] = [fee.get_amount(),'N/A',"No",fee.get_paid()]
             else:
-                fees[fee[0]] = [fee[1],fee[2],"Yes",fee[3]]
+                paiddate = fee.get_paid_date()
+                paiddate = ("-").join(paiddate)
+                fees[fee.get_fees_id()] = [fee.get_amount(),paiddate,"Yes",fee.get_paid()]
         return render_template('fees.html', fees=fees)
-    elif current_user.usertype == 3:
-        users = db.engine.execute('SELECT id, firstName, surname FROM user')
+    elif current_user.get_usertype() == 3:
+        users = db.engine.execute('SELECT id FROM user')
         athletes = {}
         for athlete in users:
-            athletes[athlete[0]] = [athlete[1]+ " "+ athlete[2]]        
+            athlete = User.query.filter_by(id = athlete[0]).first()
+            athletes[athlete.get_id()] = [athlete.get_first_name()+ " "+ athlete.get_surname()]        
         query = db.engine.execute('SELECT fees.fees_id, user.firstName, user.surname, fees.amount, fees.paid_date, fees.paid FROM fees, user WHERE user.id = fees.athlete_id ORDER BY fees.paid_date DESC')
         return render_template('adminfees.html', fees=query, athletes=athletes)
 
 @app.route('/createfees', methods= ['GET','POST'])#complete
 @login_required
 def create_fees():
-    if current_user.usertype != 3 or current_user.verified != 1:
+    if current_user.get_usertype() != 3 or current_user.get_verified() != 1:
         return render_template('error.html',error="You are not authorised to view this page")  
     if request.method == "POST":
         users = db.engine.execute('SELECT id, firstName, surname FROM user')
         athletes = {}
         for athlete in users:
-            athletes[athlete[0]] = [athlete[1]+ " "+ athlete[2]]   
+            athlete = User.query.filter_by(id = athlete[0]).first()
+            athletes[athlete.get_id()] = [athlete.get_first_name()+ " "+ athlete.get_surname()]   
         athlete_id = request.form.get('athlete')
         amount = request.form.get('amount')
         check = isfloat(amount)
@@ -786,10 +857,9 @@ def set_fees_date():
                 except:
                     redirect(url_for('view_fees'))
     if valid:
-        paidDate = request.form.get(valid).split("-")
+        paidDate = str(request.form.get(valid))
         feesid = valid.split("_")[1]
         try:
-            paidDate = str(date(int(paidDate[0]),int(paidDate[1]),int(paidDate[2])))
             if request.method == 'POST':
                 query = db.engine.execute('UPDATE fees SET paid_date = "{}", paid = {} WHERE fees_id= {}'.format(paidDate,1,feesid))
                 db.session.commit()
@@ -799,19 +869,18 @@ def set_fees_date():
         return redirect(url_for('view_fees'))
     return redirect(url_for('view_fees'))
 
-@app.route('/deletefees/<feeid>')#complete
+@app.route('/deletefees/<feeid>')#oop
 @login_required
 def delete_fees(feeid):
-    if current_user.usertype != 3 or current_user.verified != 1:
+    if current_user.get_usertype() != 3 or current_user.get_verified() != 1:
         return render_template('error.html',error="You are not authorised to view this page")  
-    try:
-        query = db.engine.execute('DELETE FROM fees WHERE fees_id = {}'.format(feeid))
-        db.session.commit()
-    except:        
-        flash('Was not able to delete this fee', category='error')
+    fee = Fees.query.filter_by(fees_id = feeid).first()
+    fee.delete_fee()
+    db.session.commit()   
+    flash('Was not able to delete this fee', category='error')
     return redirect(url_for('view_fees'))
 
-@app.route('/contacts')#complete
+@app.route('/contacts')#oop
 @login_required
 def view_contacts():
     if current_user.usertype not in [0,1,2,3] or current_user.verified != 1:
@@ -850,7 +919,7 @@ def view_contacts():
         query = db.engine.execute('SELECT contacts.contacts_id, user.firstName, user.surname, contacts.firstName, contacts.surname, contacts.number FROM contacts, user WHERE user.id = contacts.athlete_id')
         return render_template('admincontacts.html', contacts=query, athletes=athletes)
 
-@app.route('/createcontacts/', methods= ['GET','POST'])#complete
+@app.route('/createcontacts/', methods= ['GET','POST'])#oop
 @login_required
 def create_contacts():
     if current_user.usertype != 3 or current_user.verified != 1:
@@ -884,7 +953,7 @@ def create_contacts():
         return redirect(url_for('view_contacts'))
     return redirect(url_for('view_contacts'))
 
-@app.route('/deletecontacts/<contactid>')#complete
+@app.route('/deletecontacts/<contactid>')#oop
 @login_required
 def delete_contacts(contactid):
     if current_user.usertype != 3 or current_user.verified != 1:
@@ -897,7 +966,7 @@ def delete_contacts(contactid):
         flash('Was not able to delete this contact successfully', category='error')
     return redirect(url_for('view_contacts'))
 
-@app.route('/teamsheet')#complete
+@app.route('/teamsheet')#oop
 @login_required
 def view_teamsheet():
     if current_user.usertype not in [0,1,2,3] or current_user.verified != 1:
@@ -994,7 +1063,7 @@ def view_teamsheet():
         options[athlete[0]] = [athlete[1] + " " + athlete[2]]
     return render_template('adminteamsheet.html',own_team_sheets = own_team_sheets,athletes=options,other_team_sheets=other_team_sheets)
 
-@app.route('/createteamsheet',methods=['GET','POST'])#complete
+@app.route('/createteamsheet',methods=['GET','POST'])#oop
 @login_required
 def create_teamsheet():
     try:
@@ -1071,7 +1140,7 @@ def create_teamsheet():
     except:
         return render_template('error.html',error="You do not have a team to create a teamsheet for, consult an admin to create one")  
 
-@app.route('/deleteteamsheet/<teamsheetid>')#complete
+@app.route('/deleteteamsheet/<teamsheetid>')#oop
 @login_required
 def delete_teamsheet(teamsheetid):
     if current_user.usertype not in [1,2,3] or current_user.verified != 1:
@@ -1084,7 +1153,7 @@ def delete_teamsheet(teamsheetid):
         flash('An error occured whilst trying to delete this teamsheet', category='error')
     return redirect(url_for('create_teamsheet'))
 
-@app.route('/teamsheet/addathletes/<teamsheetid>', methods=['GET','POST'])#complete
+@app.route('/teamsheet/addathletes/<teamsheetid>', methods=['GET','POST'])#oop
 @login_required
 def add_athletes(teamsheetid):
     if current_user.usertype not in [1,2,3] or current_user.verified != 1:
@@ -1109,7 +1178,7 @@ def add_athletes(teamsheetid):
         flash('There was an error adding this athlete into the teamsheet',category='error')
     return redirect(url_for('view_teamsheet'))
 
-@app.route('/deletefromteamsheet/<teamsheetid>/<athleteid>')#complete
+@app.route('/deletefromteamsheet/<teamsheetid>/<athleteid>')#oop
 def delete_from_teamsheet(teamsheetid,athleteid):
     if current_user.usertype not in [1,2,3] or current_user.verified != 1:
         return render_template('error.html',error="You are not authorised to view this page")
