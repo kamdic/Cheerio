@@ -110,6 +110,33 @@ class User(db.Model, UserMixin):
         athlete_date = str(self.get_dob()).rstrip("00:00:00.0000000")
         born = athlete_date.split("-")
         return int(today[0]) - int(born[0]) - (((int(today[1]), int(today[2]))) < ((int(born[1]), int(born[2]))))
+    
+    def get_recommendation(self):
+        try:
+            query = db.engine.execute('SELECT team__sheet.role FROM team__sheet, user WHERE user.id = {} AND user.id = team__sheet.athlete_id'.format(self.get_id()))
+            roles = {}
+            for recommendation in query:
+                role = recommendation[0]
+                query = db.engine.execute("SELECT COUNT(team_sheet_id) FROM team__sheet WHERE role = '{}' AND athlete_id = {}".format(role,self.get_id()))
+                for count in query:
+                    count = count[0]
+                roles[role] = count
+            roles = dict(sorted(roles.items(),key=lambda item:item))
+            recommend = []
+            maxi = list(roles.items())[0][1]
+            for key in roles.keys():
+                if roles[key] == maxi:
+                    recommend.append(key)
+            if len(recommend) == 1:
+                return(self.get_first_name() + " " + self.get_surname() + " is usually a " + recommend[0])
+            else:
+                string = self.get_first_name() + " " + self.get_surname() + " is usually a " + recommend[0]
+                for role in range(1,len(recommend)-1):
+                    string += ", " + recommend[role]
+                string += ", or a " + recommend[-1]
+                return string
+        except:
+            pass
 
 class Fees(db.Model):
     __tablename__ = "fees"
@@ -245,6 +272,7 @@ class Team_Sheet(db.Model): #Will add each athlete to the teamsheet from team me
     def delete_from_team(self):
         db.engine.execute('DELETE FROM team__sheet WHERE team_sheet_id = {} AND athlete_id = {}'.format(self.get_team_sheet_id(),self.get_athlete_id()))
     
+    
 class Contacts(db.Model):
     __tablename__ = "contacts"
     contacts_id= db.Column(db.Integer, primary_key=True)
@@ -295,8 +323,6 @@ class Events(db.Model): #1. an event is made
     def delete_event(self):
         db.engine.execute('DELETE FROM Events WHERE events_id = {}'.format(self.get_events_id()))
 
-
-
 def isfloat(num):
     try:
         float(num)
@@ -320,6 +346,7 @@ def password(passwd):
         return True
     else:
         return False
+    
 
 @app.errorhandler(404)#complete
 def not_found(error):
@@ -373,7 +400,7 @@ def login():
             if check_password_hash(user.get_password_hash(), password):
                 if user.get_verified() == 1:
                     login_user(user)
-                    if -1 < user.usertype < 3:
+                    if -1 < user.get_usertype() < 3:
                         return redirect(url_for('view_teams',user=current_user))
                     elif user.get_usertype() == 3:
                         return redirect(url_for('admin'))
@@ -1039,16 +1066,19 @@ def view_teamsheet():
             athletes = event.get_athletes()
             event_name = Events.query.filter_by(events_id = event.get_eventid()).first()
             coach_team_sheets[event.get_team_sheet_id()] = [event_name.get_event_name(),athletes]
-        query = db.engine.execute('SELECT user.id, user.firstName, user.surname FROM user, team__events, team__details,team__members WHERE team__events.team_id = team__details.team_id AND team__details.coach_id = {} AND team__members.team_id = team__details.team_id AND user.id = team__members.athlete_id'.format(current_user.id))
+        query = db.engine.execute('SELECT user.id, user.firstName, user.surname FROM user, team__events, team__details,team__members WHERE team__events.team_id = team__details.team_id AND team__details.coach_id = {} AND team__members.team_id = team__details.team_id AND user.id = team__members.athlete_id'.format(current_user.get_id()))
+        recommendations = []
         for athlete in query:
             athlete = User.query.filter_by(id = athlete[0]).first()
             options[athlete.get_id()] = [athlete.get_first_name() + " " + athlete.get_surname()]
-        return render_template('coachathleteteamsheet.html',own_team_sheets=own_team_sheets,coach_team_sheets=coach_team_sheets,athletes=options)
+            if athlete.get_recommendation():
+                recommendations.append(athlete.get_recommendation())
+        return render_template('coachathleteteamsheet.html',own_team_sheets=own_team_sheets,coach_team_sheets=coach_team_sheets,athletes=options,recommendations=recommendations)
     elif  current_user.get_usertype() == 2:
         team_sheets = {}
         events = []
         options = {}
-        query = db.engine.execute('SELECT team__events.team_sheet_id, events.event_name FROM events, team__events, team__details WHERE events.events_id = team__events.event_id  AND team__details.team_id = team__events.team_id AND team__details.coach_id = {} ORDER BY team__events.team_sheet_id'.format(current_user.id))
+        query = db.engine.execute('SELECT team__events.team_sheet_id, events.event_name FROM events, team__events, team__details WHERE events.events_id = team__events.event_id  AND team__details.team_id = team__events.team_id AND team__details.coach_id = {} ORDER BY team__events.team_sheet_id'.format(current_user.get_id()))
         for event in query:
             event = Team_Events.query.filter_by(team_sheet_id = event[0]).first()
             events.append(event)
@@ -1057,10 +1087,13 @@ def view_teamsheet():
             event_name = Events.query.filter_by(events_id = event.get_eventid()).first()
             team_sheets[event.get_team_sheet_id()] = [event_name.get_event_name(),athletes]
         query = db.engine.execute('SELECT user.id, user.firstName, user.surname FROM user, team__events, team__details,team__members WHERE team__events.team_id = team__details.team_id AND team__details.coach_id = {} AND team__members.team_id = team__details.team_id AND user.id = team__members.athlete_id'.format(current_user.get_id()))
+        recommendations = []
         for athlete in query:
             athlete = User.query.filter_by(id = athlete[0]).first()
             options[athlete.get_id()] = [athlete.get_first_name() + " " + athlete.get_surname()]
-        return render_template('coachteamsheet.html', team_sheets=team_sheets,athletes=options)
+            if athlete.get_recommendation():
+                recommendations.append(athlete.get_recommendation())
+        return render_template('coachteamsheet.html', team_sheets=team_sheets,athletes=options,recommendations=recommendations)
     other_team_sheets = {}
     events = []
     query = db.engine.execute('SELECT team__events.team_sheet_id, events.event_name,team__details.team_name FROM events, team__events, team__details WHERE events.events_id = team__events.event_id  AND team__details.team_id = team__events.team_id AND NOT team__details.coach_id = {} ORDER BY team__events.team_sheet_id'.format(current_user.get_id()))
@@ -1085,10 +1118,13 @@ def view_teamsheet():
             event_name = Events.query.filter_by(events_id = event.get_eventid()).first()
         own_team_sheets[team_sheet_id] = [event_name.get_event_name(),athletes]    
     query = db.engine.execute('SELECT user.id, user.firstName, user.surname FROM user, team__events, team__details,team__members WHERE team__events.team_id = team__details.team_id AND team__details.coach_id = {} AND team__members.team_id = team__details.team_id AND user.id = team__members.athlete_id'.format(current_user.get_id()))
+    recommendations = []
     for athlete in query:
         athlete = User.query.filter_by(id = athlete[0]).first()
         options[athlete.get_id()] = [athlete.get_first_name() + " " + athlete.get_surname()]
-    return render_template('adminteamsheet.html',own_team_sheets = own_team_sheets,athletes=options,other_team_sheets=other_team_sheets)
+        if athlete.get_recommendation():
+            recommendations.append(athlete.get_recommendation())
+    return render_template('adminteamsheet.html',own_team_sheets = own_team_sheets,athletes=options,other_team_sheets=other_team_sheets,recommendations=recommendations)
 
 @app.route('/createteamsheet',methods=['GET','POST'])#complete
 @login_required

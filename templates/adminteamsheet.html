@@ -220,6 +220,9 @@
         </table>
         </form>
         {% endfor %}
+        {%for recommendation in recommendations %}
+          <h6>{{recommendation}}</h6>
+        {% endfor %}
         {% for team_sheet in other_team_sheets%}
         <h3>{{other_team_sheets[team_sheet][0]}} - {{other_team_sheets[team_sheet][1]}}</h3>
         <table class="table table-striped">
