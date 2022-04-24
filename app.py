@@ -439,7 +439,7 @@ def admin():
 @app.route('/users', methods= ['GET', 'POST'])#complete
 @login_required
 def verify_users():
-    if current_user._get_usertype() < 3:
+    if current_user._get_usertype() != 3 and current_user.get_verified() != 1:
         return render_template('error.html',error="You are not authorised to view this page")
     unverified_users = {}
     query = db.engine.execute('SELECT id, firstName, surname, email FROM user WHERE verified < {}'.format(1))
@@ -480,7 +480,7 @@ def verify_users():
 @app.route('/setusers', methods= ['GET', 'POST'])#complete
 @login_required
 def set_users():
-    if current_user._get_usertype() < 3:
+    if current_user._get_usertype() != 3 and current_user.get_verified() != 1:
         return render_template('error.html',error="You are not authorised to view this page")
     verify_users()
     valid = False
@@ -1167,7 +1167,7 @@ def create_teamsheet():
                     else:
                         query = db.engine.execute("INSERT INTO team__events (event_id, team_id, size) VALUES ('{}','{}','{}')".format(event_id,team_id,size))
                         db.session.commit()
-                        return redirect(url_for('create_teamsheet'))
+                        return redirect(url_for('view_teamsheet'))
                 except:
                     flash('There was an error when creating this team sheet',category='error')
             return render_template('createteamsheet.html', events = events, team = team_name,sizes=sizes, team_sheets=existing_sheets, count=0)
@@ -1184,7 +1184,7 @@ def create_teamsheet():
                     else:
                         query = db.engine.execute("INSERT INTO team__events (event_id, team_id, size) VALUES ('{}','{}','{}')".format(event_id,team_id,size))
                         db.session.commit()
-                        return redirect(url_for('create_teamsheet'))
+                        return redirect(url_for('view_teamsheet'))
                 except:
                     flash('There was an error when creating this team sheet',category='error')
             return render_template('createteamsheet.html', events = events, team = team_name,sizes=sizes, team_sheets=existing_sheets, count=0)
@@ -1201,7 +1201,7 @@ def create_teamsheet():
                     else:
                         query = db.engine.execute("INSERT INTO team__events (event_id, team_id, size) VALUES ('{}','{}','{}')".format(event_id,team_id,size))
                         db.session.commit()
-                        return redirect(url_for('create_teamsheet'))
+                        return redirect(url_for('view_teamsheet'))
                 except:
                     flash('There was an error when creating this team sheet',category='error')        
             return render_template('admincreateteamsheet.html', events = events, team = team_name,sizes=sizes, team_sheets=existing_sheets, count=0)
@@ -1215,7 +1215,7 @@ def delete_teamsheet(teamsheetid):
         return render_template('error.html',error="You are not authorised to view this page")
     try:
         team_sheet = Team_Events.query.filter_by(team_sheet_id = teamsheetid).first()
-        team_sheet.delete_teamsheet()
+        team_sheet._delete_teamsheet()
         db.session.commit()
     except:
         flash('An error occured whilst trying to delete this teamsheet', category='error')
@@ -1240,7 +1240,7 @@ def add_athletes(teamsheetid):
         elif len(athletes) > 0:
             flash('This athlete already has a role in the teamsheet',category='error')
         else:
-            query = db.engine.execute("INSERT INTO team__sheet VALUES ('{}','{}','{}')".format(teamsheetid,athlete_id,role))
+            query = db.engine.execute("INSERT INTO team__sheet VALUES ('{}','{}','{}')".format(teamsheetid,athlete_id,role.capitalize()))
             db.session.commit()
     except:
         flash('There was an error adding tfhis athlete into the teamsheet',category='error')
